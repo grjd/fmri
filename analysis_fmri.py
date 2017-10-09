@@ -292,12 +292,12 @@ def build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_corre
     print('The mean across subjects is %.3f and the std is %.3f', np.mean(arrmeans), np.std(arrmeans))    
     return correlation_matrices
 
-def plot_correlation_matrix(corr_matrix,label_map,msgtitle=None):
+def plot_correlation_matrix(corr_matrix,label_map,coords_map=None,msgtitle=None):
     ''' plot correlation matrix
     Input: ONE correlation matrix
     label_map : list of rois
     masgtitle'''
-
+    from nilearn import plotting
     from nitime.viz import drawmatrix_channels, drawgraph_channels
     plot_heatmap = True
     plot_graph = True
@@ -307,7 +307,4 @@ def plot_correlation_matrix(corr_matrix,label_map,msgtitle=None):
     if plot_graph == True:    
         print('Plotting correlation_matrix as a network nitime...')
         fig_g_drawg = drawgraph_channels(corr_matrix, label_map,title=msgtitle)
-        
-    
-
-        #plotting.plot_connectome(correlation_matrix, legend_values,edge_threshold='05%', title=msgtitle,display_mode="ortho",edge_vmax=.5, edge_vmin=-.5)       
+    plotting.plot_connectome(corr_matrix, coords_map,edge_threshold='05%', title=msgtitle,display_mode="ortho",edge_vmax=.5, edge_vmin=-.5)       

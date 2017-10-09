@@ -155,7 +155,8 @@ if  mask_type[idx] == 'atlas':
     label_map = afmri.get_atlas_labels(mask_label)
 elif mask_type[idx] == 'DMN':
     mask_label= afmri.get_MNI_coordinates(mask_type[idx])   
-    label_map = afmri.get_MNI_coordinates(mask_type[idx]).keys()     
+    label_map = afmri.get_MNI_coordinates(mask_type[idx]).keys()  
+    coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
     
 masker = afmri.generate_mask(mask_type[idx], mask_label, preproc_parameters_list)
 
@@ -171,9 +172,9 @@ kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'par
 corr_matrices = afmri.build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation=kind_of_correlation[0])
 
 #pass one correlation matrix to plot
-subject_id = 0
-msgtitle = "Subject_{}_Group:{}_Mask:{}_Corr:{}".format(idx, cohort,mask_type[idx],kind_of_correlation )
-afmri.plot_correlation_matrix(corr_matrices[subject_id],label_map,msgtitle)
+subject_id = 15
+msgtitle = "Subject_{}_Group:{}_Mask:{}_Corr:{}".format(subject_id, cohort,mask_type[idx],kind_of_correlation )
+afmri.plot_correlation_matrix(corr_matrices[subject_id],label_map,coords_map,msgtitle)
 
 pdb.set_trace()
 #Group ICA analysis
