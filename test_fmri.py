@@ -8,6 +8,7 @@ The test_fmri.py is a module that tests the Module analysis_fmri.py
 containing preprocessing and anaylis of fMRI images
 """
 import os
+import numpy as np
 import pdb
 import matplotlib.pyplot as plt
 import analysis_fmri as afmri
@@ -16,6 +17,7 @@ print('Calling to test_fmri to test functions in analysis_fmri')
 #The location of the nifti iamges can be input
 #literally epi_file_list or suing the base directory the name of the subjects and the fname
  
+
         
 def select_cohort(cohort_group):
     '''load a list of nifti images defined in cohort_group'''
@@ -126,11 +128,21 @@ def verify_and_load_images(file_list=None, subjects_list=None, dir_name=None, f_
             print('ERROR loading the images')
     return epi_file_list
 
-#name of the cohort with images to load 
+def granger_causality_analysis(time_series, preproc_parameters_list,label_map,order):
+    ''' granger test and plot the connectivity matrix'''
+    #testing the null hypothesis of no granger
+    print("Testing for Granger causality")
+    granger_test_results = afmri.test_for_granger(time_series, preproc_parameters_list, label_map, order)
+    #building granger connectome
+    afmri.build_granger_matrix(time_series, preproc_parameters_list, label_map)
+    return granger_test_results
 
+
+
+
+     
 group = ['converter', 'control', 'single_subject']
 cohort = group[1]
-#pdb.set_trace()
 file_list = select_cohort(cohort)
 
 #verify and load can be load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
@@ -145,36 +157,59 @@ else:
 # Load preprocessign parameters   
 preproc_parameters_list = preproc_parameters_list()
 
-
-
 mask_type = ['atlas','DMN', 'AN', 'SN']
-idx = 1
+idx = 0
 
-if  mask_type[idx] == 'atlas':
+if mask_type[idx] == 'atlas':
     mask_label = 'cort-maxprob-thr25-2mm'
+    #mask_label = 'power_2011'
     label_map = afmri.get_atlas_labels(mask_label)
 elif mask_type[idx] == 'DMN':
     mask_label= afmri.get_MNI_coordinates(mask_type[idx])   
-    label_map = afmri.get_MNI_coordinates(mask_type[idx]).keys()  
-    coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
-    
+    label_map = [afmri.get_MNI_coordinates(mask_type[idx]).keys(), afmri.get_MNI_coordinates(mask_type[idx]).values()]   
+    #coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
+  
 masker = afmri.generate_mask(mask_type[idx], mask_label, preproc_parameters_list)
-
-#masker = afmri.generate_mask('DMN', afmri.get_MNI_coordinates('DMN'), preproc_parameters_list)
-
-print("Masker parameters are:%s\n") % (masker.get_params())
-
-#extract time series for the masker
+print "The masker parameters are:%s\n" % (masker.get_params())
+#extract time series for the masker with the preproc parameters
 time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list)
 
-print('Time series dimensions =%d x %d x %d', (len(time_series),time_series[0].shape[0],time_series[0].shape[1]))
+nb_of_subjects = len(time_series)
+print "Time series dimensions. subjects=%d" %nb_of_subjects
+pdb.set_trace()
+# Precision matrix
+print "Calculating the Covariance and the Precision Matrix (inverse covariance)"
+precision_matrix = afmri.build_sparse_invariance_matrix(time_series, label_map)
+
+
+# Granger causality : test and plot the granger connectome 
+print "Calculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type[idx])
+#granger_test_results = granger_causality_analysis(time_series, preproc_parameters_list,label_map, order=10)
+
+# correlation analysis
 kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation']
-corr_matrices = afmri.build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation=kind_of_correlation[0])
+idcor = 0
+corr_matrices = afmri.build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation=kind_of_correlation[idcor])
 
 #pass one correlation matrix to plot
-subject_id = 15
-msgtitle = "Subject_{}_Group:{}_Mask:{}_Corr:{}".format(subject_id, cohort,mask_type[idx],kind_of_correlation )
-afmri.plot_correlation_matrix(corr_matrices[subject_id],label_map,coords_map,msgtitle)
+subject_id = None
+msgtitle = "Subject_{}, Group:{}, Mask:{}, Corr:{}".format(subject_id, cohort, mask_label,kind_of_correlation[idcor] )
+if type(corr_matrices) is list:
+    corr_matrices = np.transpose(np.asarray(corr_matrices))
+    corr_matrices_mean = corr_matrices.mean(-1)
+# plot mean of correlation matrices, to plot single  individual corr_matrices[subjectid]
+# to plot mrean use corr_matrices_mean        
+pdb.set_trace()
+afmri.plot_correlation_matrix(corr_matrices_mean,label_map, msgtitle)
+
+# Seed_based correlation
+print "Calculting seed based correlation"
+build_seed_based_correlation_matrix(masker.fit_transform(masker, epi_file, time_series, preproc_parameters, nonseed_mask='brain-wide')
+
+
+
+
+
 
 pdb.set_trace()
 #Group ICA analysis
