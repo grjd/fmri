@@ -16,6 +16,8 @@ import nitime.timeseries as ts
 from nilearn.image import mean_img, index_img, image
 from nilearn.plotting import (plot_roi, plot_epi,plot_prob_atlas, find_xyz_cut_coords, show,
                               plot_stat_map)    
+from scipy import stats, signal, linalg
+import matplotlib.pyplot as plt
   
 def group_ICA(epi_file_list, preproc_parameters, cohort=None):
     """Decomposition analysis of bold data, using two estimators: ICA and dictLearning. 
@@ -263,15 +265,17 @@ def get_atlas_labels(label):
         atlas_filename = dataset['maps']
         # Loading atlas data stored in 'labels'
         labels = dataset['labels']
-        coords = dataset.region_coords
+        coords = dataset.regi
+        on_coords
     return dim_coords_mm
                 
                           
-def generate_mask(mask_type, mask_coords, preproc_parameters):
+def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None):
     '''generate_mask returns a mask object depending on the mask type
     '''
     from nilearn import datasets
     from nilearn.input_data import NiftiLabelsMasker, NiftiSpheresMasker, NiftiMasker, NiftiMapsMasker 
+    from nilearn.plotting import plot_roi, show
     masker = []
     #atlas type of mask
     if mask_type == 'atlas':
@@ -310,21 +314,52 @@ def generate_mask(mask_type, mask_coords, preproc_parameters):
                                                low_pass=preproc_parameters['low_pass'],
                                                high_pass=preproc_parameters['high_pass'], 
                                                t_r=preproc_parameters['t_r'],memory='nilearn_cache', 
-                                               memory_level=3, verbose=5, allow_overlap=False)         
+                                               memory_level=3, verbose=5, allow_overlap=False) 
+    elif mask_type == 'brain-wide':        
+        #create masker for seed analysis 
+        if epi_filename is None:
+            print "Generating mask for brain-wide using datasets.fetch_icbm152_2009()" 
+            icbms = datasets.fetch_icbm152_2009()
+            masker = NiftiMasker(mask_img=icbms.mask, detrend=preproc_parameters['detrend'],
+                                 standardize=preproc_parameters['standardize'],
+                                 smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
+                                 low_pass=preproc_parameters['low_pass'],
+                                 high_pass=preproc_parameters['high_pass'],
+                                 t_r=preproc_parameters['t_r'],verbose=5)
+        else:
+            print "Extracting mask for raw EPI data:%s" %(epi_filename)
+            mean_img = image.mean_img(epi_filename)
+            masker = NiftiMasker(mask_strategy='epi',detrend=preproc_parameters['detrend'],
+                                 standardize=preproc_parameters['standardize'],
+                                 smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
+                                 low_pass=preproc_parameters['low_pass'],
+                                 high_pass=preproc_parameters['high_pass'],
+                                 t_r=preproc_parameters['t_r'],verbose=5, allow_overlap=False)
+            masker.fit(epi_filename)
+            plot_roi(masker.mask_img_, mean_img, title='EPI automatic mask')
+                                                                
     return masker  
 
 def extract_timeseries_from_mask(masker, epi_file):
-    ''' extract time series from mask object'''
+    ''' extract time series from mask object for images defined in epi_file
+    Input: masker is a mask built in the function generate_mask
+    epi_file: can be a list of files (list) or a single file (str). If it is a list returns a list of time series(ndarrays)
+    if it is just one file it returns one ndarray time x voxels'''
+        
     time_series = []
-    for i in range(0, len(epi_file)):
-        print('........Extracting image %d / %d', (i,len(epi_file)))
-        ts = masker.fit_transform(epi_file[i])
-        if ts.shape[0] == 120:
-            warnings.warn("The time series number of points is 120, removing 4 initial dummy volumes", Warning)
-            ts = ts[4:120]   
-        time_series.append(ts)         
-    print('Number of features:', len(time_series), 'Feature dimension:', time_series[0].shape)      
-    #time_series[i].shape=(116, 4) (subjects x time x regions)
+    if type(epi_file) is str:
+        print "'........Extracting time series for 1 image"
+        time_series = masker.fit_transform(epi_file)
+    elif type(epi_file) is list:
+        # list of images extract the time series for each image
+        for i in range(0, len(epi_file)):
+            print('........Extracting image %d / %d', (i,len(epi_file)-1))
+            ts = masker.fit_transform(epi_file[i])
+            #if ts.shape[0] == 120:
+                #    warnings.warn("The time series number of points is 120, removing 4 initial dummy volumes", Warning)
+                #    ts = ts[4:120]   
+            time_series.append(ts)         
+            print('Number of features:', len(time_series), 'Feature dimension:', time_series[0].shape)      
     return time_series
 
 def build_granger_matrix(time_series, preproc_parameters=None, label_map=None):
@@ -442,85 +477,107 @@ def test_for_granger(time_series, preproc_parameters=None, label_map=None, order
     print_test_results(Gres_all, pairtestedlist)
     return Gres_all    
 
-def build_sparse_invariance_matrix(time_series=None, label_map=None):
+def build_sparse_invariance_matrix(time_series, label_map=None, cohort=None):
     '''calculates the sparse covariance and precision matrices matrix for a group of subjects
-    time_series ndarray subjects x n x m and plots the connectome
-    Input: subject_time_series ndarray'''
+    Input: time_series ndarray subjects x n x m and plots the connectome
+    label_map: dict keys and values'''
     from nilearn import plotting
     from nilearn.connectome import GroupSparseCovarianceCV
-    edge_threshold = '90%'# 0.6 #'60%'
+    
     print('Calling to nilearn.connectome.GroupSparseCovarianceCV \
         Sparse inverse covariance w/ cross-validated choice of the parameter')
     gsc = GroupSparseCovarianceCV(verbose=2)
     gsc.fit(time_series)
-    pdb.set_trace()
     precision_matrix = -gsc.precisions_[...,0]
     covariances_matrix = gsc.covariances_[...,0]   
-    plotconnectome  = True 
-    if plotconnectome is True:
-        plotting.plot_connectome(precision_matrix, label_map.values(), edge_threshold=edge_threshold,
-                             title=str(edge_threshold)+'-GroupSparseCovariancePrec', display_mode='lzr')
-        plotting.plot_connectome(covariances_matrix, label_map.values(), edge_threshold=edge_threshold,
-                             title=str(edge_threshold)+'-GroupSparseCovariance', display_mode='lzr')
-        #plot_covariance_matrix(gsc.covariances_[..., 0],gsc.precisions_[..., 0], labels, title = str(edge_threshold)+"-GroupSparseCovariance")
-        plotting.show()
-    # persistent homology analysis
-    #persistent_homology(gsc.covariances_[..., 0], coords)
-    #pdb.set_trace()
+    return precision_matrix
 
-def build_seed_based_correlation_matrix(seed_masker, epi_file, time_series, non_seed_mask, preproc_parameters):
-    ''' build_seed_based_correlation_matrix
-    Input: seed_masker, time_series'''
-    seed_time_series = time_series    
-    brain_masker = generate_mask(non_seed_mask, epi_file, preproc_parameters)
-    #generate non seed mask
-    brain_time_series = brain_masker.fit_transform(epi_file)
-    print("seed time series shape: (%s, %s)" % seed_time_series.shape)
-    print("brain time series shape: (%s, %s)" % brain_time_series.shape)
-    #make sure time series have same number of time points
-    if seed_time_series.shape[0] != brain_time_series.shape:
-        brain_time_series = brain_time_series[4:brain_time_series.shape[0],:]
-        print("The corrected time series dimension are:")
-        print("seed time series shape: (%s, %s)" % seed_time_series.shape)
-        print("brain time series shape: (%s, %s)" % brain_time_series.shape)
-    #select the seed
-    seed_time_series = seed_time_series[:,0]
-    seed_based_correlations = np.dot(brain_time_series.T, seed_time_series) / \
-                          seed_time_series.shape[0]
+def build_seed_based_coherency(seed_ts, nonseed_ts, preproc_parameters):
+    ''' build_seed_based_coherency analysis
+    Input: seed_ts ndarray of time series extracted from mask
+    Input: nonseed_ts ndarray of time series extracted from entire brain mask
+    Input: index_seed int 0 for PCC in DMN'''
+    import nitime.timeseries as ts
+    import nitime.analysis as nta
+    methods = (None,
+               {"this_method": 'welch', "NFFT": preproc_parameters['NFFT']},
+               {"this_method": 'multi_taper_csd'},
+               {"this_method": 'periodogram_csd', "NFFT": preproc_parameters})
+    T_seed1 = ts.TimeSeries(seed_ts.T, sampling_interval=preproc_parameters['t_r']) #preproc_parameters['low_pass'] 
+    T_target = ts.TimeSeries(nonseed_ts.T, sampling_interval=preproc_parameters['t_r'])
+    T_target = ts.TimeSeries(np.vstack([seed_ts.T,nonseed_ts.T ]), sampling_interval=preproc_parameters['t_r'])
+    this_method = methods[1] #welch method
+    print "Computing Coherency ...."
+    coh_seed = nta.SeedCoherenceAnalyzer(T_seed1, T_target,method=this_method, ub=0.1)
+    return coh_seed
+       
+def build_seed_based_correlation(seed_ts, nonseed_ts, preproc_parameters):
+    ''' build_seed_based_correlation from seed time series and nonseed time series
+    Input: seed_ts, nonseed_ts type ndarray
+    Output: reruns the fisher correlation of the nonseed time series and the one voxel (seed)'''
+    print "Seed time series: time points=%s. nb of voxels=%s " % (len(seed_ts), seed_ts[0].shape)
+    print "Non-Seed time series:  time points=%s. nb of voxels=%s" % (len(nonseed_ts), nonseed_ts[0].shape)
+
+    seed_based_correlations = np.dot(nonseed_ts.T, seed_ts) / \
+                          seed_ts.shape[0]
     print "seed-based correlation shape", seed_based_correlations.shape
-    print "seed-based correlation: min =", seed_based_correlations.min(), " max = ", seed_based_correlations.max()
+    print "seed-based correlation normalized [-1,1]: min =", seed_based_correlations.min(), " max = ", seed_based_correlations.max()
     #Fisher-z transform the data to achieve a normal distribution. 
     #The transformed array can now have values more extreme than +/- 1.
     seed_based_correlations_fisher_z = np.arctanh(seed_based_correlations)
     print "seed-based correlation Fisher-z transformed: min =", seed_based_correlations_fisher_z.min(), \
     " max =", seed_based_correlations_fisher_z.max()                                                                                             
-    seed_based_correlation_img = brain_masker.inverse_transform(seed_based_correlations.T)
-    seed_based_correlation_img.to_filename('sbc_z.nii.gz')
-    pcc_coords = dim_coords.values()[0]
+    return seed_based_correlations_fisher_z,seed_based_correlations
+
+def plot_seed_based_correlation(seed_co, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None, typeofcorr=None):
+    '''plot_seed_based_correlation plots the seed based correlation in a brain in MNI space, iot does an inverse transform'''
+    from nilearn import plotting
+    from nilearn import datasets
+    from nilearn.input_data import NiftiMasker 
+    if typeofcorr is 'coherence':
+        filename = "seedcoherence_subject_{}.nii.gz".format(subject_id)
+        msgtitle_prefix = 'Coherence'
+        coherence = seed_co.coherence
+        phases = seed_co.relative_phases
+        seed_coherency = np.mean(coherence, axis=1)
+        seed_phases = np.mean(phases, axis=1)
+        seed_coherency = seed_coherency.reshape(seed_coherency.shape[0],1)
+        seed_phases = seed_phases.reshape(seed_phases.shape[0],1)
+        pdb.set_trace()
+        seed_based_correlation_img = nonseed_masker.inverse_transform(seed_coherency[:-1].T)
+        seed_based_phases_img = nonseed_masker.inverse_transform(seed_phases[:-1].T)
+    else:
+        #filename ='seedcorrelation.nii.gz'
+        filename = "seedcorrelation_subject_{}.nii.gz".format(subject_id)
+        msgtitle_prefix = 'Correlation'
+        
+        seed_based_correlation_img = nonseed_masker.inverse_transform(seed_co.T)
+        
+    imageresult = os.path.join(dirname, filename)
+    seed_based_correlation_img.to_filename(imageresult)
+    
     #pcc_coords = [(0, -52, 18)]
     #MNI152Template = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz'
     #remove out-of brain functional connectivity using a mask
     icbms = datasets.fetch_icbm152_2009()
     masker_mni = NiftiMasker(mask_img=icbms.mask)
-    data = masker_mni.fit_transform('sbc_z.nii.gz')
+    data = masker_mni.fit_transform(imageresult)
     masked_sbc_z_img = masker_mni.inverse_transform(data)
-    #pdb_set_tarce()
-    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=pcc_coords, \
-                                         threshold=0.6, title= 'PCC-based corr. V-A', dim='auto', display_mode='ortho')
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
+    msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
+    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, \
+                                         threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
+    #plot phases
+    plot_phases = True
+    if typeofcorr is 'coherence' and plot_phases is True:
+        filename = "seedphases_subject_{}.nii.gz".format(subject_id)
+        imageresult = os.path.join(dirname, filename)
+        seed_based_phases_img.to_filename(imageresult)
+        data = masker_mni.fit_transform(imageresult)
+        masked_sbc_z_img = masker_mni.inverse_transform(data)
+        msgtitle = "Seed_Phases_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
+        display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords,
+                                         threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
+                                         
 def build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation='correlation'):
     ''' calculate the correlation matrix for the time series according to kind_of_analysis and
     kind_of_correlation:{“correlation”, “partial correlation”, “tangent”, “covariance”, “precision”} '''
@@ -545,21 +602,98 @@ def build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_corre
     print('The mean across subjects is %.3f and the std is %.3f', np.mean(arrmeans), np.std(arrmeans))    
     return correlation_matrices
 
-def plot_correlation_matrix(corr_matrix,label_map,msgtitle=None):
+def plot_correlation_matrix(corr_matrix,label_map, what_to_plot, edge_threshold=None, msgtitle=None):
     ''' plot correlation matrix
     Input: ONE correlation matrix
-    label_map : list of rois
+    label_map : dict with rois (label_map.keys()) and values (label_map.values())
     masgtitle'''
     from nilearn import plotting
     from nitime.viz import drawmatrix_channels, drawgraph_channels
-    # plot heatmap and network using nitime (no brain in background)
-    plot_heatmap = True
-    plot_graph = True
-    if plot_heatmap == True:
+    # if what_to_plot is not specified define what to plot
+    if what_to_plot is None:
+        plot_heatmap = True
+        plot_graph = True
+        plot_connectome = True
+    else:
+        plot_heatmap = what_to_plot['plot_heatmap']
+        plot_graph = what_to_plot['plot_graph']
+        plot_connectome = what_to_plot['plot_connectome']       
+    if plot_heatmap is True:
         print('Plotting correlation_matrix as a heatmap from nitime...')
         fig_h_drawx = drawmatrix_channels(corr_matrix, label_map.keys(), size=[10., 10.], color_anchor=0, title= msgtitle)    
     if plot_graph == True:    
-        print('Plotting correlation_matrix as a network nitime...')
+        print('Plotting correlation_matrix as a (circular) network nitime...')
         fig_g_drawg = drawgraph_channels(corr_matrix, label_map.keys(),title=msgtitle)
     #plotting connectivity network with brain overimposed
-    plotting.plot_connectome(corr_matrix, label_map.values(),edge_threshold='90%', title=msgtitle,display_mode="ortho",edge_vmax=.5, edge_vmin=-.5)       
+    if plot_connectome is True:
+        fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map.values(),edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
+        
+        
+            #if  what_to_plot['plot_heatmap'] is True:
+    #if  what_to_plot['plot_graph'] is True:
+    #if  what_to_plot['plot_connectome'] is True:    
+    #    plotting.plot_connectome(precision_matrix, label_map.values(), edge_threshold=edge_threshold,
+    #                         title=str(edge_threshold)+'-GroupSparseCovariancePrec', display_mode='lzr')
+    #    plotting.plot_connectome(covariances_matrix, label_map.values(), edge_threshold=edge_threshold,
+    #                         title=str(edge_threshold)+'-GroupSparseCovariance', display_mode='lzr')
+    #    msgtitle = "Precision matrix:%s, edge threshold=%s" % (cohort,edge_threshold) 
+        #plot only the heat map
+    #    plot_correlation_matrix(precision_matrix,label_map,msgtitle)
+        #plot_covariance_matrix(gsc.covariances_[..., 0],gsc.precisions_[..., 0], labels, title = str(edge_threshold)+"-GroupSparseCovariance")
+    #    plotting.show()
+    # persistent homology analysis
+    #persistent_homology(gsc.covariances_[..., 0], coords)
+    #pdb.set_trace()
+def calculate_coherence(x,y, preproc_params):
+    ''' Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals X and Y using Welch’s method.
+    Input: signals x and y ndarray samples x time points. Calculates the coherence of x for each signal in y 
+    x: (1 sample, time points) and y: (n samples, time points)'''
+    
+    nperseg=20
+    f, Cxy = signal.coherence(x, y, fs=preproc_params['fs'], nfft=preproc_params['nfft'], nperseg=nperseg)    
+    return f, Cxy
+
+
+def fourier_spectral_estimation(ts, image_params, msgtitle=None):
+    """Calculate the PSD estimate from a time series using Welch's method
+    The power spectrum calculates the area under the signal plot using the discrete Fourier Transform
+    The PSD assigns units of power to each unit of frequency and thus, enhances periodicities 
+    Welch’s method computes an estimate of the power spectral density by dividing 
+    the data into overlapping segments, computing a modified periodogram for each segment and averaging the periodograms.
+    by default constant detrend, one-sided spectrum, 
+    noverlap = nperseg / 2 (noverlap is 0, this method is equivalent to Bartlett’s method). 
+    scaling 'density'V**2/Hz 'spectrum' V**2.
+    returns array of sampling frerquencies and the power spectral density of the ts
+    Inout: ts is a ndarray of time series (samples x time points)
+    Example: f, Pxx_den = fourier_spectral_estimation(ts)
+    
+    """
+     
+    #data_img, image_params = load_fmri_image_name()
+    #data = np.zeros(1, 1)  # initialize for number of rois and number of samples
+    # The cadillac of spectral estimates is the multi-taper estimation, 
+    # which provides both robustness and granularity, but notice that 
+    # this estimate requires more computation than other estimates  
+    psd_results = []
+    plotPxx = True
+    if plotPxx is True: 
+        fig, ax = plt.subplots(ts.shape[0], 1, sharex=True, sharey=True, squeeze=False)    
+    for i in range(0, ts.shape[0]):
+        msgtitlepre = "PSD_{}".format(msgtitle)
+        #nperseg is the length of each segment, 256 by default
+        nperseg=20
+        f, Pxx_den = signal.welch(ts[i,:], image_params['fs'], nperseg=nperseg, detrend='constant', nfft =image_params['nfft'], scaling = 'density')  
+        pxx = [f, Pxx_den]
+        psd_results.append(pxx)
+        print "Timeseries:", i," frequency sampling", f, " Pxx_den:", Pxx_den, " Max Amplitude is:", np.mean(Pxx_den.max())
+        if plotPxx is True:
+            #plt.figure()
+            #ax[i].semilogy(f, Pxx_den)
+            ax[i,0].plot(f, Pxx_den)
+            if i == ts.shape[0]-1:
+                ax[i,0].set_xlabel('frequency [Hz]')
+            ax[i,0].set_ylabel('PSD [V**2/Hz]')
+            msgtitlepost = "{}_id:{}".format(msgtitlepre, i)
+            ax[i,0].set_title(msgtitlepost)
+    print psd_results        
+    return  psd_results 
