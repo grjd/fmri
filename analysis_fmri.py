@@ -647,10 +647,16 @@ def plot_correlation_matrix(corr_matrix,label_map, what_to_plot, edge_threshold=
 def calculate_coherence(x,y, preproc_params):
     ''' Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals X and Y using Welch’s method.
     Input: signals x and y ndarray samples x time points. Calculates the coherence of x for each signal in y 
-    x: (1 sample, time points) and y: (n samples, time points)'''
-    
-    nperseg=20
-    f, Cxy = signal.coherence(x, y, fs=preproc_params['fs'], nfft=preproc_params['nfft'], nperseg=nperseg)    
+    x: (1 sample, time points) and y: (n samples, time points) in this shape use axis by default axis = -1'''
+    # nperseg Length of each segment, if large returns 1, by default is 256 more than out segment will return 1
+    # minimum window length can be pick the time lag where the autocorrelation *first* drops 
+    nperseg= 16
+    noverlap = 8
+    # Axis along which the coherence is computed for both inputs; the default is over the last axis (i.e. axis=-1).
+    f, Cxy = signal.coherence(x, y, fs=preproc_params['fs'], nfft=preproc_params['nfft'], nperseg=nperseg, noverlap=noverlap) 
+    #calculate spectral connectivity measures using MNE
+    #from mne.connectivity import spectral_connectivity
+    #spectral_connectivity()
     return f, Cxy
 
 

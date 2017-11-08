@@ -210,10 +210,10 @@ def calculate_and_plot_seed_based_coherence(time_series, nonseed_masker,nonseed_
     afmri.plot_seed_based_correlation(coh_seedbrain, nonseed_ts, seed_coords, dirname, threshold,subject_id, cohort, typeofcorr)
     return coh_seedbrain
 
-# Load preprocessign parameters   
+# Load preprocessing parameters   
 preproc_parameters_list = preproc_parameters_list()
-    
-###########Testing fucntion space #########
+freqband = [0.01, 0.1]     
+########### Testing function space #########
 seed_ts = np.load('seed_ts.npy')
 print "Seed ts dimensions={} X {}".format(seed_ts.shape[0], seed_ts.shape[1])
 nonseed_ts = np.load('nonseed_ts.npy')
@@ -222,14 +222,32 @@ print "NonSeed ts dimensions={} X {}".format(nonseed_ts.shape[0], nonseed_ts.sha
 #afmri.fourier_spectral_estimation(seed_ts.T, image_params=preproc_parameters_list(),msgtitle='converter')
 #psd = afmri.fourier_spectral_estimation(nonseed_ts.T[10234:10239], image_params=preproc_parameters_list(),msgtitle='converter')
 nb_voxels = nonseed_ts.shape[1]
-nonseed_forcoh = nonseed_ts.T[12345:12349,:].reshape(4,120)
-f, Cxy = afmri.calculate_coherence(seed_ts.T, nonseed_forcoh[0],preproc_parameters_list)
-# Compute coherence for the entire nonseed_ts
-#f, Cxy = afmri.calculate_coherence(seed_ts.T, nonseed_ts.T,preproc_parameters_list)
-# Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals X and Y using Welch’s method.
 
-            
-pdb.set_trace()
+targetseed1 = 10345
+targetseed2 = 10349
+targetseeds = targetseed2 - targetseed1
+nonseed_forcoh = nonseed_ts.T[targetseed1:targetseed2,:].reshape(targetseeds,120)
+
+# Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals seed and target using Welch’s method.
+Cxy_targets = []
+for targetix in range(0,targetseeds):
+    f, Cxy = afmri.calculate_coherence(seed_ts.T, nonseed_forcoh[targetix],preproc_parameters_list)
+    maskfreqs = (f>=freqband[0]) & (f <=freqband[1])
+    # Select f[4] > 0.01 and f[34] < 0.1
+    Cxy = Cxy[0][maskfreqs] 
+    print "Mean Coherence (CPD) in range (0.01-0.1)Hz between seed and target:{} = {}".format(targetseed1+targetix, np.mean(Cxy))
+    Cxy_targets.append(Cxy)
+
+#Plot the coherence 
+
+targetix  = 0
+plt.semilogy(f[maskfreqs], Cxy_targets[targetix])
+plt.xlabel('frequency [Hz]')
+plt.ylabel('Coherence')
+    
+msgtitle = "Coherence seed-target:%s, freq band=%s, %s" % (targetix, freqband[0],freqband[1])  
+plt.title(msgtitle)      
+quit()
 ###########Testing fucntion space #########
  
  
