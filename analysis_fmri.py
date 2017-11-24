@@ -339,27 +339,71 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
             plot_roi(masker.mask_img_, mean_img, title='EPI automatic mask')
                                                                 
     return masker  
+def motion_correction(epi_file, preproc_params):
+    #from nipype.interfaces import fsl
+    import subprocess 
+    #import ntpath
+    
+    #mcflt = fsl.MCFLIRT()
+    #mcflt.inputs.in_file = epi_file
+    #mcflt.inputs.cost = 'mutualinfo'
+    #mcflt.inputs.terminal_output = 'stream'
+    #mcflt.inputs.stats_imgs = True
+    dirname = os.path.dirname(epi_file)
+    # epi_file_output must exist 'touch epi_file_output'
+    epi_file_output = os.path.join(dirname, str(epi_file))
+    #mcflt.inputs.out_file = epi_file
+    #mcflt.inputs.out_file = epi_file_output
+    #mcflt.inputs.output_type = 'NIFTI'
+    print "Computing Motion correction: mcflirt -in {} -cost mutualinfo -report -verbose \n".format(epi_file_output)
+    # -out, -o <outputfile> default output file is infile_mcf
+    #res = mcflt.run()
+    #pdb.set_trace()
+    subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-cost", "mutualinfo", "-report"])
+    return True
 
+def slicetiming_correction(epi_file, preproc_params):
+    '''slicetiming_correction performs slice timing correction interleaved calling ot FSL'''
+    import subprocess
+    import ntpath
+    imgpath = ntpath.split(epi_file)
+    dirname = imgpath[0]
+    filename = imgpath[1]
+    extension = filename.split(".",1)[1]
+    extension = "." + extension 
+    filename = filename.split(".",1)[0]
+    epi_file_output = filename +'_stc'
+    epi_file_output = epi_file_output + extension
+    
+    epi_file_output = os.path.join(dirname, str(epi_file_output))
+    do_stc = True
+    if os.path.exists(epi_file_output):
+        print "WARNING: A slice time correction version of file {} exists\n"
+        yes = set(['yes','y', 'ye', ''])
+        #no = set(['no','n'])
+        print "Do you want to overwrite it? Y|N?"
+        do_stc = raw_input('Do you want to overwrite it? Y|N?').lower()
+        if do_stc in yes:
+            do_stc =  True
+        else:
+            do_stc = False
+            print "Exiting function, do not prforming Slice time Corection \n" 
+            
+    if do_stc is True:
+        print "Computing Slice Timing correction: slicetimer -i {} [-o <corrected_timeseries>] [options] \n".format(epi_file_output)
+        subprocess.check_output(["slicetimer", "-i", str(epi_file), "-o", str(epi_file_output), "-r", "2.5", "--odd", "-v"])
+        return True
+    else:
+        return False
+    
 def extract_timeseries_from_mask(masker, epi_file):
-    ''' extract time series from mask object for images defined in epi_file
+    ''' extract time series from mask object for image defined in epi_file
     Input: masker is a mask built in the function generate_mask
-    epi_file: can be a list of files (list) or a single file (str). If it is a list returns a list of time series(ndarrays)
-    if it is just one file it returns one ndarray time x voxels'''
-        
-    time_series = []
-    if type(epi_file) is str:
-        print "'........Extracting time series for 1 image"
-        time_series = masker.fit_transform(epi_file)
-    elif type(epi_file) is list:
-        # list of images extract the time series for each image
-        for i in range(0, len(epi_file)):
-            print('........Extracting image %d / %d', (i,len(epi_file)-1))
-            ts = masker.fit_transform(epi_file[i])
-            #if ts.shape[0] == 120:
-                #    warnings.warn("The time series number of points is 120, removing 4 initial dummy volumes", Warning)
-                #    ts = ts[4:120]   
-            time_series.append(ts)         
-            print('Number of features:', len(time_series), 'Feature dimension:', time_series[0].shape)      
+    epi_file: is a image file
+    if it is just one file it returns one ndarray time x voxels'''      
+    print "'........Extracting time series for image {}:".format(epi_file)
+    time_series = masker.fit_transform(epi_file)        
+    print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])      
     return time_series
 
 def build_granger_matrix(time_series, preproc_parameters=None, label_map=None):
@@ -529,29 +573,16 @@ def build_seed_based_correlation(seed_ts, nonseed_ts, preproc_parameters):
     " max =", seed_based_correlations_fisher_z.max()                                                                                             
     return seed_based_correlations_fisher_z,seed_based_correlations
 
-def plot_seed_based_correlation(seed_co, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None, typeofcorr=None):
-    '''plot_seed_based_correlation plots the seed based correlation in a brain in MNI space, iot does an inverse transform'''
+def plot_seed_based_correlation_MNI_space(seed_co, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
+    '''plot_seed_based_correlation plots the seed based correlation in a brain in MNI space, it does an inverse transform'''
     from nilearn import plotting
     from nilearn import datasets
     from nilearn.input_data import NiftiMasker 
-    if typeofcorr is 'coherence':
-        filename = "seedcoherence_subject_{}.nii.gz".format(subject_id)
-        msgtitle_prefix = 'Coherence'
-        coherence = seed_co.coherence
-        phases = seed_co.relative_phases
-        seed_coherency = np.mean(coherence, axis=1)
-        seed_phases = np.mean(phases, axis=1)
-        seed_coherency = seed_coherency.reshape(seed_coherency.shape[0],1)
-        seed_phases = seed_phases.reshape(seed_phases.shape[0],1)
-        pdb.set_trace()
-        seed_based_correlation_img = nonseed_masker.inverse_transform(seed_coherency[:-1].T)
-        seed_based_phases_img = nonseed_masker.inverse_transform(seed_phases[:-1].T)
-    else:
-        #filename ='seedcorrelation.nii.gz'
-        filename = "seedcorrelation_subject_{}.nii.gz".format(subject_id)
-        msgtitle_prefix = 'Correlation'
-        
-        seed_based_correlation_img = nonseed_masker.inverse_transform(seed_co.T)
+
+    #filename ='seedcorrelation.nii.gz'
+    filename = "seedcorrelation_subject_{}.nii.gz".format(subject_id)
+    msgtitle_prefix = 'Correlation'
+    seed_based_correlation_img = nonseed_masker.inverse_transform(seed_co.T)
         
     imageresult = os.path.join(dirname, filename)
     seed_based_correlation_img.to_filename(imageresult)
@@ -566,18 +597,35 @@ def plot_seed_based_correlation(seed_co, nonseed_masker, seed_coords, dirname, t
     msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
     display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, \
                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
-    #plot phases
-    plot_phases = True
-    if typeofcorr is 'coherence' and plot_phases is True:
-        filename = "seedphases_subject_{}.nii.gz".format(subject_id)
-        imageresult = os.path.join(dirname, filename)
-        seed_based_phases_img.to_filename(imageresult)
-        data = masker_mni.fit_transform(imageresult)
-        masked_sbc_z_img = masker_mni.inverse_transform(data)
-        msgtitle = "Seed_Phases_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
-        display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords,
-                                         threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
                                          
+def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
+    ''' plot_seed_based_coherence in MNI space using an inverse transform
+    Input: Cxymean the coherence between all voxel pairs, type 'numpy.ndarray'
+    nonseed_masker: Mask of the non seed, the entire brain
+    seed_coords: coordinates of the seed,tuple, typically the PCC (0, -52, 18),
+    dirname path where the image is saved
+    threshold: threshold to slect relevant coherence
+    subject_id and cohort strings for the masgtitle of the plot'''
+    from nilearn import plotting
+    from nilearn import datasets
+    from nilearn.input_data import NiftiMasker 
+    filename = "seedcoherence_subjec dt_{}.nii.gz".format(subject_id)
+    msgtitle_prefix = 'Coherence'
+    seed_based_correlation_img = nonseed_masker.inverse_transform(Cxymean.T)
+    imageresult = os.path.join(dirname, filename)
+    seed_based_correlation_img.to_filename(imageresult)
+    #pcc_coords = [(0, -52, 18)]
+    #MNI152Template = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz'
+    #remove out-of brain functional connectivity using a mask
+    icbms = datasets.fetch_icbm152_2009()
+    masker_mni = NiftiMasker(mask_img=icbms.mask)
+    data = masker_mni.fit_transform(imageresult)
+    masked_sbc_z_img = masker_mni.inverse_transform(data)
+    msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
+    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, \
+                                         threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
+    return display
+    
 def build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation='correlation'):
     ''' calculate the correlation matrix for the time series according to kind_of_analysis and
     kind_of_correlation:{“correlation”, “partial correlation”, “tangent”, “covariance”, “precision”} '''
@@ -670,7 +718,7 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
     noverlap = nperseg / 2 (noverlap is 0, this method is equivalent to Bartlett’s method). 
     scaling 'density'V**2/Hz 'spectrum' V**2.
     returns array of sampling frerquencies and the power spectral density of the ts
-    Inout: ts is a ndarray of time series (samples x time points)
+    Input: ts is a ndarray of time series (samples x time points)
     Example: f, Pxx_den = fourier_spectral_estimation(ts)
     
     """
@@ -685,9 +733,10 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
     if plotPxx is True: 
         fig, ax = plt.subplots(ts.shape[0], 1, sharex=True, sharey=True, squeeze=False)    
     for i in range(0, ts.shape[0]):
-        msgtitlepre = "PSD_{}".format(msgtitle)
+        mnicoords = get_MNI_coordinates('DMN')
+        msgtitlepre = "{}".format('DMN')
         #nperseg is the length of each segment, 256 by default
-        nperseg=20
+        nperseg=16
         f, Pxx_den = signal.welch(ts[i,:], image_params['fs'], nperseg=nperseg, detrend='constant', nfft =image_params['nfft'], scaling = 'density')  
         pxx = [f, Pxx_den]
         psd_results.append(pxx)
@@ -699,7 +748,7 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
             if i == ts.shape[0]-1:
                 ax[i,0].set_xlabel('frequency [Hz]')
             ax[i,0].set_ylabel('PSD [V**2/Hz]')
-            msgtitlepost = "{}_id:{}".format(msgtitlepre, i)
+            msgtitlepost = "{}_node:{}".format(msgtitlepre, mnicoords.keys()[i])
             ax[i,0].set_title(msgtitlepost)
     print psd_results        
     return  psd_results 
