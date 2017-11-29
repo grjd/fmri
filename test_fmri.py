@@ -17,6 +17,9 @@ from collections import OrderedDict
 from nilearn import plotting
 from nilearn import datasets
 from nilearn.input_data import NiftiMasker 
+from nilearn.datasets import load_mni152_template
+from nilearn.image import resample_to_img
+
 print('Calling to test_fmri to test functions in analysis_fmri')
 #Load a list of images load_epi_images(epi_file_list=None, subjects_list=None, dir_name=None, f_name=None)
 #The location of the nifti iamges can be input
@@ -71,9 +74,33 @@ def select_cohort(cohort_group):
                              '/Users/jaime/vallecas/data/converters_y1/controls/w0337_fMRI.nii',
                              '/Users/jaime/vallecas/data/converters_y1/controls/w0450_fMRI.nii',
                              '/Users/jaime/vallecas/data/converters_y1/controls/w0805_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0935_fMRI.nii']  
+                             '/Users/jaime/vallecas/data/converters_y1/controls/w0935_fMRI.nii'] 
+    epi_file_list_control = ['/Users/jaime/vallecas/data/converters_y1/controls/test/w0022_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0077_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0124_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0189_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0365_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0523_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0832_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w1017_fMRI_mcf.nii.gz',
+                             #'/Users/jaime/vallecas/data/converters_y1/controls/w0243_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0028_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0105_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0171_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0312_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0429_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0691_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0841_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w1116_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0049_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0121_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0187_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0337_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0450_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0805_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0935_fMRI_mcf.nii.gz']
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
-    epi_file_list_one = ['/Users/jaime/vallecas/data/surrogate_bcpa/bcpa0537_0/testwbold.nii']
+    epi_file_list_one = ['/Users/jaime/vallecas/data/surrogate_bcpa/bcpa0537_0/testwbold.nii.gz']
     
     if cohort_group is 'converter':               
         file_list = epi_file_list_conv
@@ -106,8 +133,9 @@ def motion_correction(epi_file_list, preproc_parameters_list):
         moc_res = afmri.motion_correction(f, preproc_parameters_list)
         moc_res = moc_res and moc_res
     return moc_res         
-def slicetiming_correction(epi_file_list, preproc_parameters_list):
-    ''' slicetiming_correction :  corrects each voxel's time-series for the fact 
+
+def slicetime_correction(epi_file_list, preproc_parameters_list):
+    ''' slicetime_correction :  corrects each voxel's time-series for the fact 
     that later processing assumes that all slices were acquired exactly 
     half-way through the relevant volume's acquisition time (TR), 
     whereas in fact each slice is taken at slightly different times.
@@ -115,7 +143,7 @@ def slicetiming_correction(epi_file_list, preproc_parameters_list):
     Output: boolean. True if SliceTimer run with no errors  '''
     slicetiming_res = True
     for f in file_list:
-        slicetiming_res = afmri.slicetiming_correction(f, preproc_parameters_list)
+        slicetiming_res = afmri.slicetime_correction(f, preproc_parameters_list)
         slicetiming_res = slicetiming_res and slicetiming_res
     return slicetiming_res
             
@@ -192,7 +220,7 @@ def extract_seed_ts(time_series,seed_id):
 
 def extract_non_seed_mask_and_ts(epi_file, preproc_parameters_list):    
     ''' extract_non_seed_mask_and_ts '''
-    nonseed_masker = afmri.generate_mask('brain-wide', [], preproc_parameters_list)
+    nonseed_masker = afmri.generate_mask('brain-wide', [], preproc_parameters_list, epi_file)
     nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file) 
     return nonseed_masker, nonseed_ts
     
@@ -252,7 +280,7 @@ def calculate_seed_based_coherence(seed_ts, nonseed_ts, freqband, preproc_parame
             maskfreqs = (f >= freqband[0]) & (f <= freqband[1])
             passed_once = True
         Cxy = Cxy[0][maskfreqs]
-        print "Mean Coherence (CPD) in range (0.01-0.1)Hz between seed and target:{} = {}".format(targetix, np.mean(Cxy))
+        print "Mean Coherence (CPD) in range {}-{} Hz. between seed and target:{} = {}".format(freqband[0],freqband[1], targetix, np.mean(Cxy))
         Cxy_targets.append(Cxy)
         Cxymean.append(np.mean(Cxy))
     Cxymean = np.asarray(Cxymean)
@@ -310,7 +338,7 @@ if load_from_file is True:
 
 
 group = ['converter', 'control', 'single_subject']
-cohort = group[2]
+cohort = group[1]
 file_list = select_cohort(cohort)
 
 # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
@@ -325,16 +353,23 @@ if len(epi_file_list) > 0:
     print "Nb of subjects =%s" % nb_of_subjects
     dirname = os.path.dirname(epi_file_list[0])
 else:
-    print('ERROR: File(s) containing the images do not exist')
+    sys.exit('ERROR: File(s) containing the images do not exist')
 
-# Preprocessing the images
-preprocessing = True
-if preprocessing is True:
+################################
+# Preprocessing the images 
+# mcf motion correction
+# stc slice tiem correction
+################################ 
+
+mcf = False
+stc  = False
+if mcf is True:
     if motion_correction(epi_file_list, preproc_parameters_list) is not True:
-        sys.exit("ERROR performing Motion Correction!!!!")
-    pdb.set_trace()
-    if slicetiming_correction(epi_file_list, preproc_parameters_list) is not True: 
-        sys.exit("ERROR performing slice time correction!!!!")
+        sys.exit("ERROR performing Motion Correction!")
+if stc is True:
+    if slicetime_correction(epi_file_list, preproc_parameters_list) is not True: 
+        sys.exit("ERROR performing Slice time correction!")
+
                
 # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is genrated after
 mask_type = ['atlas','DMN', 'AN', 'SN']
@@ -357,27 +392,30 @@ seed_id = 0
 seed_coords = label_map[1][seed_id]
 print "The masker parameters are:%s\n" % (masker.get_params())
 print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
-#extract time series for the masker with the preproc parameters
-  
 
-# single subject or group analysis
-single_subject = True
-# Seed based analysis, if False, network based analysis
-pdb.set_trace()
-# Extract time series from image
+
+#######################################
+# Extract time series from teh masker #
+# with the preproc parameters         #
+# single subject or group analysis    #
+####################################### 
+ 
+single_subject = False
 if single_subject is True:
     # Choose only one subject
     subject_id = 0
     time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list[subject_id]) 
      # time x n voxels (eg 4 nodes in the DMN)
     seed_ts = time_series
+    # reshape subjects x time x voxels
+    seed_ts_subjects = seed_ts.reshape(1, seed_ts[0], seed_ts[1])
     print "\n EXTRACTED Seed Time Series. Number of time points: {} x Voxels:{}".format(seed_ts.shape[0],seed_ts.shape[1])
     #plot only some time series
     #ts_to_plot = range(0,10)
     #plot_time_series(time_series[subject_id][:,ts_to_plot], subject_id)
-    msgtitle = "DMN time series in cadaver".format(subject_id)
+    msgtitle = "DMN time series in subject:{}".format(subject_id)
     plot_time_series(seed_ts, msgtitle)
-    afmri.fourier_spectral_estimation(seed_ts.T, preproc_parameters_list)
+    psd = afmri.fourier_spectral_estimation(seed_ts.T, preproc_parameters_list)
 else:
     # list of images extract the time series for each image
     time_series_list = []
@@ -388,13 +426,17 @@ else:
     # list of time series as an array         
     seed_ts_subjects =  np.asarray(time_series_list)
     print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects.shape[1],seed_ts_subjects.shape[2])
-pdb.set_trace()
 
-seed_based = False  
+#######################################
+# Seed based analysis                 #
+# Pearson correlation (power based)   #
+# and coherence                       #
+####################################### 
+
+seed_based = False
+# threshold used when plotting the results 
+threshold = 0.6 
 if seed_based is True:
-    # seed based analysis, seed time series against entire brain time series
-    # extract nonseed_time series
-    threshold = 0.6
     if single_subject is True:
         print "\n SINGLE SUBJECT ANALYSIS: Computing Seed based correlation and Coherence....\n" 
         # time x 1 voxel
@@ -415,25 +457,26 @@ if seed_based is True:
         non_seed_ts_list = []
         #nb_of_subjects = 2
         for subject_id in range(0, nb_of_subjects):
-            print "Extracting time series for Subject %s / %s" % (subject_id, nb_of_subjects-1)
+            print "Extracting time series for Subject %s / %s \n" % (subject_id, nb_of_subjects-1)
             seed_ts = seed_ts_subjects[subject_id]
             #plot_time_series(time_series[subject_id], subject_id)
             seed_ts = extract_seed_ts(seed_ts,seed_id)
             nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_file_list[subject_id], preproc_parameters_list)     
             nonseed_corr_fisher, nonseed_masker,nonseed_ts = calculate_and_plot_seed_based_correlation(seed_ts, nonseed_masker, nonseed_ts,mask_type[idx],mask_label,preproc_parameters_list,
                                                             epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort)
-            Cxy_targets, f, Cxymean = calculate_and_plot_seed_based_coherence(seed_ts, nonseed_masker, nonseed_ts, mask_type[idx], mask_label,preproc_parameters_list, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort, freqband, 'coherence')
+            Cxy_targets, f, Cxymean = calculate_and_plot_seed_based_coherence(seed_ts, 
+                                                            nonseed_masker, nonseed_ts, mask_type[idx], mask_label,preproc_parameters_list, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort, freqband, 'coherence')
             # YS calculate_and_plot_seed_based_COHERENCE
             non_seed_masker_list.append(nonseed_masker)
             non_seed_corr_list.append(nonseed_corr_fisher)
             non_seed_coh_list.append(Cxymean)
             non_seed_ts_list.append(nonseed_ts)
         #calculate the mean of the seed based across individuals
-        # mean in absolute value
+        #mean in absolute value
         #arr_fisher_corr = np.abs(np.array(non_seed_corr_list))
         arr_fisher_corr = np.array(non_seed_corr_list)
         arr_coherence = np.array(non_seed_coh_list)
-        print "Wise mean of the Fisher seed correlation across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_fisher_corr.min(), arr_fisher_corr.max(), arr_fisher_corr.mean(), arr_fisher_corr.std())
+        #print "Wise mean of the Fisher seed correlation across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_fisher_corr.min(), arr_fisher_corr.max(), arr_fisher_corr.mean(), arr_fisher_corr.std())
         wisemean_fisher = arr_fisher_corr.mean(axis=0)
         wisemean_coh = arr_coherence.mean(axis=0)
         voxels = wisemean_fisher.shape[0]
@@ -448,39 +491,99 @@ if seed_based is True:
         print "Wise mean of the Seed Coherence (Welch method) across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_coherence.min(), arr_coherence.max(), arr_coherence.mean(), arr_coherence.std())
         display = afmri.plot_seed_based_coherence_MNI_space(wisemean_coh, non_seed_masker_list[0], seed_coords, dirname, threshold, subject_id, cohort)
 
-pdb.set_trace()                  
-print "Calculating the Covariance and the Precision Matrix (inverse covariance)"
-precision_matrix = afmri.build_sparse_invariance_matrix(time_series, label_map)
-what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-edge_threshold = '90%'# 0.6 #'60%'
-msgtitle = "Precision matrix:%s, edge threshold=%s" % (cohort,edge_threshold) 
-print "Plotting the Precision Matrix (inverse covariance)"
-afmri.plot_correlation_matrix(precision_matrix,label_map, what_to_plot, edge_threshold, msgtitle)
+#######################################
+# Build connectome in time domain     # 
+# Correlation/Covariance/Precision    #
+#                                     #
+####################################### 
 
-# Granger causality : test and plot the granger connectome 
-print "Calculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type[idx])
-#granger_test_results = granger_causality_analysis(time_series, preproc_parameters_list,label_map, order=10)
-
-# correlation analysis
 kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation']
-idcor = 0
-corr_matrices = afmri.build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation=kind_of_correlation[idcor])
+print "Building connectome in Time domain : {}...\n".format(kind_of_correlation)
+# correlation and covariance return identical result
+idcor = 4
+#kind_of_analysis='time',
+#corr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[0])
+cov_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[1])
+tangent_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[2])
+precision_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[3])
+pcorr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[4])
 
-#pass one correlation matrix to plot
-subject_id = None
-msgtitle = "Subject_{}, Group:{}, Mask:{}, Corr:{}".format(subject_id, cohort, mask_label,kind_of_correlation[idcor] )
-if type(corr_matrices) is list:
-    corr_matrices = np.transpose(np.asarray(corr_matrices))
-    corr_matrices_mean = corr_matrices.mean(-1)
-# plot mean of correlation matrices, to plot single  individual corr_matrices[subjectid]
-# to plot mrean use corr_matrices_mean        
+#######################################
+# Build connectome in Frequency domain# 
+# Coherence                           #
+#                                     #
+####################################### 
+print "Building connectome in Frequency domain. Coherency...\n"
+coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, preproc_parameters_list, freqband)
+# convert list into ndarray subjects x time x voxels 
+coherency_matrices =  np.asarray(coherency_matrices)
+# mean across subjects
+coherency_mean_subjects = coherency_matrices.mean(axis=0)
+#######################################
+# Plot connectome in Frequency domain # 
+#######################################
+print "Plotting the mean of the coherence connectome matrices ...\n"
+msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
+what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
+afmri.plot_correlation_matrix(coherency_mean_subjects, label_map, msgtitle, what_to_plot)
+
+#######################################
+# Plot connectome in time domian      #
+# mean for subjects and/or            #
+#      single subjects                # 
+####################################### 
+
+print "Plotting the mean of the connectome matrices ...\n"
+# msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
+msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label.keys(),'Precision')
+what_to_plot = OrderedDict([('plot_heatmap', False), ('plot_graph', True), ('plot_connectome',True)])
+connectome_to_plot = precision_matrices
+if type(connectome_to_plot) is list:
+    connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
+    connectome_to_plot_mean = connectome_to_plot.mean(-1)     
+afmri.plot_correlation_matrix(connectome_to_plot_mean, label_map, msgtitle, what_to_plot)
+
+# Plot connectome for individual subject
+subject_id = 21
+print "Plotting the connectome matrices of Group={}, Subject={}\n".format(cohort, subject_id)
+connectome_to_plot_1s = connectome_to_plot[:,:,subject_id]
+msgtitle = "Group:{}, Subject_{}, Mask:{}, Connectome Type:{}".format(cohort, subject_id, mask_type[idx], kind_of_correlation[idcor])
+afmri.plot_correlation_matrix(connectome_to_plot_1s ,label_map, msgtitle, what_to_plot)
+
+#######################################
+# Build Group Covariance              # 
+# and the Precision Matrix using      #
+# using GroupSparseCovarianceCV      #
+####################################### 
+
+#what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
+#
+print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
+precision_matrix, cov_marix = afmri.build_sparse_invariance_matrix(seed_ts_subjects, label_map)
+
+#edge_threshold = '90%'# 0.6 #'60%'
+#msgtitle = "Precision matrix:%s, edge threshold=%s" % (cohort,edge_threshold) 
+msgtitle = "Precision matrix: Cohort:%s" % (cohort) 
+print "Plotting the Precision Matrix (inverse covariance) \n"
+afmri.plot_correlation_matrix(precision_matrix,label_map, msgtitle, what_to_plot) #, edge_threshold)
+
 pdb.set_trace()
-afmri.plot_correlation_matrix(corr_matrices_mean,label_map, msgtitle)
+#######################################
+# Granger causality                   #
+# test and plot Granger connectome    #
+#                                     #
+####################################### 
+print "Calculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type[idx])
+granger_test_results = granger_causality_analysis(seed_ts_subjects, preproc_parameters_list,label_map, order=10)
 
 
-#Group ICA analysis
+
+#######################################
+# Group ICA and Ward clustering       #
+#                                     #
+####################################### 
+
 print('Calling to group ICA...')
-#pdb.set_trace()
 afmri.group_ICA(epi_file_list, preproc_parameters_list, cohort)
 
 print('Calling to group Ward clustering...')

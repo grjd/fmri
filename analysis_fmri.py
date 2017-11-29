@@ -276,6 +276,10 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
     from nilearn import datasets
     from nilearn.input_data import NiftiLabelsMasker, NiftiSpheresMasker, NiftiMasker, NiftiMapsMasker 
     from nilearn.plotting import plot_roi, show
+    from nilearn.datasets import load_mni152_template
+    from nilearn.image import resample_to_img
+    template = load_mni152_template()
+    from nilearn.image import smooth_img
     masker = []
     #atlas type of mask
     if mask_type == 'atlas':
@@ -317,10 +321,11 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
                                                memory_level=3, verbose=5, allow_overlap=False) 
     elif mask_type == 'brain-wide':        
         #create masker for seed analysis 
+        #template = load_mni152_template()
         if epi_filename is None:
             print "Generating mask for brain-wide using datasets.fetch_icbm152_2009()" 
             icbms = datasets.fetch_icbm152_2009()
-            masker = NiftiMasker(mask_img=icbms.mask, detrend=preproc_parameters['detrend'],
+            masker = NiftiMasker(mask_img=icbms.masker, detrend=preproc_parameters['detrend'],
                                  standardize=preproc_parameters['standardize'],
                                  smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
                                  low_pass=preproc_parameters['low_pass'],
@@ -329,16 +334,23 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
         else:
             print "Extracting mask for raw EPI data:%s" %(epi_filename)
             mean_img = image.mean_img(epi_filename)
-            masker = NiftiMasker(mask_strategy='epi',detrend=preproc_parameters['detrend'],
+            template = load_mni152_template()
+            #smoothed_img = image.smooth_img(epi_filename) 
+            icbms = datasets.fetch_icbm152_2009()
+            reshape_mask = resample_to_img(icbms.mask, template, interpolation='nearest')
+            masker = NiftiMasker(mask_img= reshape_mask, mask_strategy = 'epi', detrend=preproc_parameters['detrend'],
                                  standardize=preproc_parameters['standardize'],
                                  smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
                                  low_pass=preproc_parameters['low_pass'],
                                  high_pass=preproc_parameters['high_pass'],
-                                 t_r=preproc_parameters['t_r'],verbose=5, allow_overlap=False)
+                                 t_r=preproc_parameters['t_r'],verbose=5)
+            
+            
             masker.fit(epi_filename)
             plot_roi(masker.mask_img_, mean_img, title='EPI automatic mask')
                                                                 
     return masker  
+
 def motion_correction(epi_file, preproc_params):
     #from nipype.interfaces import fsl
     import subprocess 
@@ -358,12 +370,16 @@ def motion_correction(epi_file, preproc_params):
     print "Computing Motion correction: mcflirt -in {} -cost mutualinfo -report -verbose \n".format(epi_file_output)
     # -out, -o <outputfile> default output file is infile_mcf
     #res = mcflt.run()
-    #pdb.set_trace()
+    # If the return code was non-zero it raises a CalledProcessError. 
+    # The CalledProcessError object will have the return code in the returncode 
+    # attribute and any output in the output attribute.
     subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-cost", "mutualinfo", "-report"])
     return True
 
-def slicetiming_correction(epi_file, preproc_params):
-    '''slicetiming_correction performs slice timing correction interleaved calling ot FSL'''
+def slicetime_correction(epi_file, preproc_params):
+    '''slicetime_correction performs slice timing correction interleaved calling ot FSL
+    With an interleaved slice order It's very controversial about if slice timing 
+    should be used, especially when there is a severe head motion.'''
     import subprocess
     import ntpath
     imgpath = ntpath.split(epi_file)
@@ -522,8 +538,8 @@ def test_for_granger(time_series, preproc_parameters=None, label_map=None, order
     return Gres_all    
 
 def build_sparse_invariance_matrix(time_series, label_map=None, cohort=None):
-    '''calculates the sparse covariance and precision matrices matrix for a group of subjects
-    Input: time_series ndarray subjects x n x m and plots the connectome
+    '''calculates the sparse covariance and precision matrices matrix for a GROUP of subjects
+    Input: time_series ndarray subjects x time points x voxels and plots the connectome
     label_map: dict keys and values'''
     from nilearn import plotting
     from nilearn.connectome import GroupSparseCovarianceCV
@@ -534,7 +550,7 @@ def build_sparse_invariance_matrix(time_series, label_map=None, cohort=None):
     gsc.fit(time_series)
     precision_matrix = -gsc.precisions_[...,0]
     covariances_matrix = gsc.covariances_[...,0]   
-    return precision_matrix
+    return precision_matrix, covariances_matrix
 
 def build_seed_based_coherency(seed_ts, nonseed_ts, preproc_parameters):
     ''' build_seed_based_coherency analysis
@@ -626,31 +642,63 @@ def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, di
                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
     return display
     
-def build_correlation_matrix(time_series, kind_of_analysis='time', kind_of_correlation='correlation'):
-    ''' calculate the correlation matrix for the time series according to kind_of_analysis and
+def build_connectome(time_series, kind_of_correlation):
+    ''' build_connectome: computes different kinds of functional connectivity matrices 
+    for the time series according to kind_of_analysis and
     kind_of_correlation:{“correlation”, “partial correlation”, “tangent”, “covariance”, “precision”} '''
     from nilearn.connectome import ConnectivityMeasure 
     from sklearn.covariance import LedoitWolf, EmpiricalCovariance
     # LedoitWolf estimatorhas slightly shrunk towards zero compared to a maximum-likelihood estimate
-    connectivity_measure = ConnectivityMeasure(EmpiricalCovariance(assume_centered=True), kind=kind_of_correlation) 
-    connectivity_measure = ConnectivityMeasure(LedoitWolf(assume_centered=True), kind=kind_of_correlation) 
-    correlation_matrices = []
+    typeofestimator = ['empirical', 'Ledoit']
+    idx = 1
+    if typeofestimator[idx] is 'empirical':
+                      connectivity_measure = ConnectivityMeasure(EmpiricalCovariance(assume_centered=True), kind=kind_of_correlation) 
+    if typeofestimator[idx] is 'Ledoit':
+                      connectivity_measure = ConnectivityMeasure(LedoitWolf(assume_centered=True), kind=kind_of_correlation) 
+    correlation_matrix_subjects = []
     for i in range(0, len(time_series)):
         correlation_matrix = connectivity_measure.fit_transform([time_series[i]])[0]
-        correlation_matrices.append(correlation_matrix)
-    print('Built correlation matrices:%s, dimension %d x%d x%d', kind_of_correlation, len(correlation_matrices), correlation_matrices[0].shape[0],correlation_matrices[0].shape[1] )    
-    arr_corr_matrices = np.array(correlation_matrices)
-    print('The wise element mean of the correlation matrices is:')
-    wisemean = arr_corr_matrices.mean(axis=0)
-    print(wisemean)
-    print('The overall mean of the correlation matrix for each subject is:  ')
-    means = [np.mean([el for el in sublist]) for sublist in correlation_matrices]
-    print(means)
+        correlation_matrix_subjects.append(correlation_matrix)
+    print "Built correlation matrices:{}, Estimator:{}, Dimension {}x{}x{}\n".format(kind_of_correlation, typeofestimator[idx], len(correlation_matrix_subjects), correlation_matrix_subjects[0].shape[0], correlation_matrix_subjects[0].shape[1])    
+    arr_corr_matrices = np.array(correlation_matrix_subjects)
+    print "The wise element mean of the correlation matrices ={}\n".format(arr_corr_matrices.mean(axis=0)) 
+    means = [np.mean([el for el in sublist]) for sublist in correlation_matrix_subjects]
     arrmeans = np.array(means)
-    print('The mean across subjects is %.3f and the std is %.3f', np.mean(arrmeans), np.std(arrmeans))    
-    return correlation_matrices
+    print "The overall mean of the correlation matrix for each subject is={}\n".format(arrmeans)
+    print "The mean across subjects is %.3f and the std is %.3f\n", (np.mean(arrmeans), np.std(arrmeans))    
+    return correlation_matrix_subjects
 
-def plot_correlation_matrix(corr_matrix,label_map, what_to_plot, edge_threshold=None, msgtitle=None):
+def build_connectome_in_frequency(time_series, preproc_params, freqband=None):
+    ''' build_connectome_in_frequency computes functional connectivity matrices
+    based on coherency
+    Input: time_series : subjects x time points x voxels
+         : preproc_params
+         : freqband: [high pass, low pass] eg 0.01, 0.1''' 
+    time_series.ndim
+    subjects_matrices = []
+    for s in range(0, time_series.shape[0]):
+        print "Calculating connectome coherency based matrix for subject: {} /  {}".format(s, time_series.shape[0]-1)
+        # initialize voxels x voxels
+        coherency_1s = np.zeros((time_series.shape[2], time_series.shape[2]))
+        #coherency_1s = np.fill_diagonal(coherency_1s, 1)
+        for voxi in range(0,time_series.shape[2]):
+            for voxj in range(0,time_series.shape[2]):
+                #if voxj >= voxi: or make the matrix symmetric at the end
+                x = time_series[s].T[voxi]
+                y = time_series[s].T[voxj]
+                f, cxy = calculate_coherence(x,y, preproc_params)
+                if freqband is None:
+                    coherency_1s[voxi, voxj] = np.mean(cxy)
+                else:
+                    maskfreqs = (f>=freqband[0]) & (f <=freqband[1])
+                    coherency_1s[voxi, voxj] = np.mean(cxy[maskfreqs])
+                    print "Coherence at {}x{}= {}".format(voxi, voxj,coherency_1s[voxi, voxj] )   
+        subjects_matrices.append(coherency_1s)      
+    
+    return subjects_matrices            
+                
+    
+def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None, edge_threshold=None):
     ''' plot correlation matrix
     Input: ONE correlation matrix
     label_map : dict with rois (label_map.keys()) and values (label_map.values())
@@ -668,13 +716,14 @@ def plot_correlation_matrix(corr_matrix,label_map, what_to_plot, edge_threshold=
         plot_connectome = what_to_plot['plot_connectome']       
     if plot_heatmap is True:
         print('Plotting correlation_matrix as a heatmap from nitime...')
-        fig_h_drawx = drawmatrix_channels(corr_matrix, label_map.keys(), size=[10., 10.], color_anchor=0, title= msgtitle)    
+        fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle)    
     if plot_graph == True:    
         print('Plotting correlation_matrix as a (circular) network nitime...')
-        fig_g_drawg = drawgraph_channels(corr_matrix, label_map.keys(),title=msgtitle)
+        fig_g_drawg = drawgraph_channels(corr_matrix, label_map[0],title=msgtitle)
     #plotting connectivity network with brain overimposed
     if plot_connectome is True:
-        fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map.values(),edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
+        edge_threshold = 0 # plot all edges with intensity automatic
+        fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
         
         
             #if  what_to_plot['plot_heatmap'] is True:
@@ -719,8 +768,7 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
     scaling 'density'V**2/Hz 'spectrum' V**2.
     returns array of sampling frerquencies and the power spectral density of the ts
     Input: ts is a ndarray of time series (samples x time points)
-    Example: f, Pxx_den = fourier_spectral_estimation(ts)
-    
+    Example: f, Pxx_den = fourier_spectral_estimation(ts)    
     """
      
     #data_img, image_params = load_fmri_image_name()
