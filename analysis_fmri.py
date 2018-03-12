@@ -325,7 +325,7 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
         if epi_filename is None:
             print "Generating mask for brain-wide using datasets.fetch_icbm152_2009()" 
             icbms = datasets.fetch_icbm152_2009()
-            masker = NiftiMasker(mask_img=icbms.masker, detrend=preproc_parameters['detrend'],
+            masker = NiftiMasker(mask_img=icbms.mask, detrend=preproc_parameters['detrend'],
                                  standardize=preproc_parameters['standardize'],
                                  smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
                                  low_pass=preproc_parameters['low_pass'],
@@ -373,6 +373,10 @@ def motion_correction(epi_file, preproc_params):
     # If the return code was non-zero it raises a CalledProcessError. 
     # The CalledProcessError object will have the return code in the returncode 
     # attribute and any output in the output attribute.
+    
+    # FSL Motion Outliers https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLMotionOutliers
+    # subprocess.check_output(["fsl_motion_outliers", "-i", str(epi_file_output), "-o", "output_motion_outliers", "-v"])
+    
     subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-cost", "mutualinfo", "-report"])
     return True
 
@@ -784,7 +788,7 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
         mnicoords = get_MNI_coordinates('DMN')
         msgtitlepre = "{}".format('DMN')
         #nperseg is the length of each segment, 256 by default
-        nperseg=16
+        nperseg = 16
         f, Pxx_den = signal.welch(ts[i,:], image_params['fs'], nperseg=nperseg, detrend='constant', nfft =image_params['nfft'], scaling = 'density')  
         pxx = [f, Pxx_den]
         psd_results.append(pxx)
