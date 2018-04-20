@@ -93,15 +93,19 @@ def group_ICA(epi_file_list, preproc_parameters, cohort=None):
         if plot_all_components is True:
             print('Plotting each component separately')
             for i, cur_img in enumerate(iter_img(components)):
-                plot_stat_map(cur_img, title="%s IC %d" % (names[estimator], i), cut_coords=cut_coords, colorbar=False)
+                msgoutputfile = 'canICA_' + 'i:'+ str(i) + '.png'
+                msgoutputfile = 'figures/' + msgoutputfile
+                plot_stat_map(cur_img, title="%s IC %d" % (names[estimator], i), output_file = msgoutputfile, cut_coords=cut_coords, colorbar=False)
                 #plot only z axis
                 #plot_stat_map(cur_img, display_mode="z", title="%s IC %d" % (names[estimator], i), cut_coords=1, colorbar=False)
         else:
             print('Plotting one component: %s', format(indices[estimator]))
-            plot_stat_map(index_img(components, indices[estimator]),
+            msgoutputfile = 'canICA_' + 'ALL' + '.png'
+            msgoutputfile = 'figures/' + msgoutputfile
+            plot_stat_map(index_img(components, indices[estimator]), output_file = msgoutputfile, 
                   title="%s component:%s %s" % (names[estimator], format(indices[estimator]),cohort),
                   cut_coords=cut_coords, colorbar=False)
-    show()
+    #show()
        
 def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     """Computes Ward type Hierarchical unsupervised learning algorithm (Ward)
@@ -124,7 +128,6 @@ def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     #                                            standardize=True, memory='nilearn_cache', verbose=5) 
     
     #concatenate list of 4D images into a single 4D image 
-    pdb.set_trace()
     conc_epi_file_list = concat_imgs(epi_file_list)
     print('compute the mask and extracts the time series form the file(s)')
     fmri_masked = nifti_masker.fit_transform(conc_epi_file_list)
@@ -156,8 +159,10 @@ def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     mean_func_img = mean_img(epi_file_list)
     #msgtitle ="Ward parcellation nclusters=%s, %s" % (n_clusters, os.path.split(os.path.dirname(epi_file_list))[1])
     msgtitle ="Ward parcellation:%s, nclusters=%s" % (cohort,n_clusters) 
-    first_plot = plot_roi(labels_img, mean_func_img, title=msgtitle,
-                      display_mode='ortho', cut_coords=(0,-52,18))
+    msgoutputfile = 'Ward_' + 'nclusters=:'+ str(n_clusters) + '.png'
+    msgoutputfile = 'figures/' + msgoutputfile
+    first_plot = plot_roi(labels_img, mean_func_img, title=msgtitle, output_file= msgoutputfile, display_mode='ortho', cut_coords=(0,-52,18))
+
     cut_coords = first_plot.cut_coords
     print ('cut coords:', cut_coords)
     dirname = os.path.dirname(epi_file_list[0])
@@ -203,6 +208,7 @@ def get_MNI_coordinates(label):
         pdb.set_trace()
     else: 
         print " ERROR: label:", label, " do not found, returning empty list of coordinates!"   
+    print("MNI coordinates :{}",dim_coords)
     return dim_coords   
 
 def get_atlas_labels(label):
@@ -361,7 +367,13 @@ def motion_correction(epi_file, preproc_params):
     #mcflt.inputs.cost = 'mutualinfo'
     #mcflt.inputs.terminal_output = 'stream'
     #mcflt.inputs.stats_imgs = True
+    
     dirname = os.path.dirname(epi_file)
+    basename = os.path.basename(epi_file)
+    mcfoutput = os.path.basename(epi_file)[:5] + '_outliers.txt'
+    mcfoutput = os.path.join('mcf_results', str(mcfoutput))
+    mcfoutliers = os.path.basename(epi_file)[:5] + '_report.txt'
+    mcfoutliers = os.path.join('mcf_results', str(mcfoutliers))
     # epi_file_output must exist 'touch epi_file_output'
     epi_file_output = os.path.join(dirname, str(epi_file))
     #mcflt.inputs.out_file = epi_file
@@ -376,8 +388,13 @@ def motion_correction(epi_file, preproc_params):
     
     # FSL Motion Outliers https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLMotionOutliers
     # subprocess.check_output(["fsl_motion_outliers", "-i", str(epi_file_output), "-o", "output_motion_outliers", "-v"])
-    
-    subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-cost", "mutualinfo", "-report"])
+    mcf_outputfilename = os.path.basename(epi_file_output)[:-4] + '_mcf.' + 'nii.gz'
+    subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-o", mcf_outputfilename,"-cost", "mutualinfo", "-report"])
+    print("To calculate the putlier run:")
+    print "fsl_motion_outliers -i {} --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
+    #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", "-v >", mcfoutliers])
+    #subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--nomoco", "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
+    #fsl_motion_outliers -i w0032_fMRI_mcf.nii.gz  --nomoco  -o 0032_outliers.txt -v > 0032_numberorbadslides.txt
     return True
 
 def slicetime_correction(epi_file, preproc_params):
@@ -615,7 +632,11 @@ def plot_seed_based_correlation_MNI_space(seed_co, nonseed_masker, seed_coords, 
     data = masker_mni.fit_transform(imageresult)
     masked_sbc_z_img = masker_mni.inverse_transform(data)
     msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
-    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, \
+    msgoutputfile = 'corr_map_' + 't:'+ str(threshold)[:4] + 's:'+ str(subject_id) + '.' + 'png'
+    print('Saving correlation map at:{}',msgoutputfile)
+
+    msgoutputfile = 'figures/' + msgoutputfile
+    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= msgoutputfile, \
                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
                                          
 def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
@@ -629,7 +650,7 @@ def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, di
     from nilearn import plotting
     from nilearn import datasets
     from nilearn.input_data import NiftiMasker 
-    filename = "seedcoherence_subjec dt_{}.nii.gz".format(subject_id)
+    filename = "seedcoherence_subjec_{}.nii.gz".format(subject_id)
     msgtitle_prefix = 'Coherence'
     seed_based_correlation_img = nonseed_masker.inverse_transform(Cxymean.T)
     imageresult = os.path.join(dirname, filename)
@@ -642,7 +663,9 @@ def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, di
     data = masker_mni.fit_transform(imageresult)
     masked_sbc_z_img = masker_mni.inverse_transform(data)
     msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
-    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, \
+    msgoutputfile = 'coh_map_' + 't:'+str(threshold)[:4] + 's_'+ str(subject_id) + '.png'
+    msgoutputfile = 'figures/' + msgoutputfile
+    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= msgoutputfile, \
                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
     return display
     
@@ -791,6 +814,10 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
         nperseg = 16
         f, Pxx_den = signal.welch(ts[i,:], image_params['fs'], nperseg=nperseg, detrend='constant', nfft =image_params['nfft'], scaling = 'density')  
         pxx = [f, Pxx_den]
+        #idx = (f>=image_params['high_pass'])*(f<=image_params['low_pass'])
+        #f = f[idx]
+        #Pxx_den = Pxx_den[idx]
+        #pxx = [f, Pxx_den]
         psd_results.append(pxx)
         print "Timeseries:", i," frequency sampling", f, " Pxx_den:", Pxx_den, " Max Amplitude is:", np.mean(Pxx_den.max())
         if plotPxx is True:
@@ -801,6 +828,35 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
                 ax[i,0].set_xlabel('frequency [Hz]')
             ax[i,0].set_ylabel('PSD [V**2/Hz]')
             msgtitlepost = "{}_node:{}".format(msgtitlepre, mnicoords.keys()[i])
-            ax[i,0].set_title(msgtitlepost)
-    print psd_results        
+            ax[i,0].set_title(msgtitlepost)  
+    print("Saving PSD results")    
+    save_plot(ax, 'subject:' + msgtitle)
     return  psd_results 
+
+def save_plot(ax, msgtitle):
+    figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/figures/' 
+    figsdirectory = os.getcwd()
+    filenametosave = os.path.join('figures/','psd_' + msgtitle)
+
+    print("Saving PSD at {} \n",filenametosave)
+    if os.path.exists(figsdirectory) is True:
+        plt.savefig(filenametosave, bbox_inches="tight")
+    else:
+        try: 
+            os.makedirs(figsdirectory)
+            plt.savefig(filenametosave, bbox_inches="tight")
+        except OSError:
+            if not os.path.isdir(figsdirectory):
+                raise 
+    plt.close()
+
+def plot_nii(nifti=None):
+    """ plot nifti image from the path
+    """
+    from nilearn import plotting
+    if nifti is None:
+        nifti = 'seedcorrelation_subject_Mean.nii.gz'
+    plotting.plot_stat_map(tmap_filename)
+    # to plot 4D image for example ICa image
+    ica_nii = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/CanICA_resting_state.nii.gz'
+    plotting.plot_prob_atlas(ica_nii)
