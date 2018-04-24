@@ -30,6 +30,28 @@ print('Calling to test_fmri to test functions in analysis_fmri')
         
 def select_cohort(cohort_group):
     '''load a list of nifti images defined in cohort_group'''
+    motioncorrection = ['/Users/jaime/vallecas/data/converters_y1/converters/0015_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0242_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0277_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0377_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0464_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0637_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0885_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0090_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0243_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0290_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0382_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0583_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0707_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0938_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0940_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0208_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0263_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0372_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0407_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0618_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/0882_fMRI.nii',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/1021_fMRI.nii'] 
     epi_file_list_scdplus = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0015_fMRI.nii',
                           '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0023_fMRI.nii',
                           '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0037_fMRI.nii',
@@ -119,83 +141,57 @@ def select_cohort(cohort_group):
                           '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0859_fMRI.nii',
                           '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0865_fMRI.nii',
                           '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0935_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0964_fMRI.nii']
-                          #'/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w1043_fMRI.nii']                    
-    epi_file_list_conv = ['/Users/jaime/vallecas/data/converters_y1/converters/w0015_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0242_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0277_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0377_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0464_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0637_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0885_fMRI.nii',
-                          '/Users/jaime/vallecas/data/converters_y1/converters/w0090_fMRI.nii']
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0243_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0290_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0382_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0583_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0707_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0938_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0940_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0208_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0263_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0372_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0407_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0618_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w0882_fMRI.nii',
-                          # '/Users/jaime/vallecas/data/converters_y1/converters/w1021_fMRI.nii']                
-    epi_file_list_control = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0077_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0124_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0189_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0365_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0523_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0832_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w1017_fMRI.nii',
-                             #'/Users/jaime/vallecas/data/converters_y1/controls/w0243_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0028_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0105_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0171_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0312_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0429_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0691_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0841_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w1116_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0049_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0121_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0187_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0337_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0450_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0805_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/w0935_fMRI.nii'] 
-    epi_file_list_control = ['/Users/jaime/vallecas/data/converters_y1/controls/test/w0022_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0077_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0124_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0189_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0365_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0523_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0832_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w1017_fMRI_mcf.nii.gz',
-                             #'/Users/jaime/vallecas/data/converters_y1/controls/w0243_fMRI.nii',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0028_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0105_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0171_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0312_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0429_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0691_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0841_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w1116_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0049_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0121_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0187_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0337_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0450_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0805_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/controls/test/w0935_fMRI_mcf.nii.gz']
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0964_fMRI.nii']               
+    epi_file_list_control = ['/Users/jaime/vallecas/data/converters_y1/controls/0022_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0077_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0124_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0189_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0365_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0523_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0832_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/1017_fMRI.nii',
+                             #'/Users/jaime/vallecas/data/converters_y1/controls/0243_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0028_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0105_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0171_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0312_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0429_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0691_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0841_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/1116_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0049_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0121_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0187_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0337_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0450_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0805_fMRI.nii',
+                             '/Users/jaime/vallecas/data/converters_y1/controls/0935_fMRI.nii']
+    epi_file_list_conv = ['/Users/jaime/vallecas/data/converters_y1/converters/w0015_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/converters_y1/converters/w0090_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0208_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0242_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0243_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0263_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0277_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0290_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0372_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0377_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0382_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0407_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0464_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0583_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0618_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0637_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0707_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0882_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0885_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0938_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0940_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w1021_fMRI_mcf.nii.gz']
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
     epi_file_list_one = ['/Users/jaime/vallecas/data/cyst_arach/wcyst_fMRI_RESTING_S_20171018163846_10.nii']
     epi_file_list_one = ['/Users/jaime/Downloads/s_008.nii']
     just_testing = ['/Users/jaime/Downloads/just_test/w0313_fMRI.nii', '/Users/jaime/Downloads/just_test/w0469_fMRI.nii']
-
     
     if cohort_group is 'converter':               
         return epi_file_list_conv
@@ -211,6 +207,8 @@ def select_cohort(cohort_group):
         return epi_file_list_scd_control
     elif cohort_group is 'test':
         return just_testing
+    elif cohort_group is 'motioncorrection':
+      return motioncorrection
 
 def prepare_plot_time_series(time_series, subject_id):
     """ prepare_plot_time_series: select voxels and title to plot time series """
@@ -239,17 +237,15 @@ def plot_time_series(timeseries, msgtitle=None):
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/figures' 
     #filenametosave = os.path.join(figsdirectory,"ts_" + msgtitle[msgtitle.find("subject"):msgtitle.find(",")])
     figsdirectory = os.getcwd()
-    filenametosave = os.path.join('figures/',"ts_" + msgtitle[msgtitle.find("subject"):msgtitle.find(",")])
-    if os.path.exists(figsdirectory) is True:
-        print("Saving time series at {} \n",filenametosave)
-        plt.savefig(filenametosave, bbox_inches="tight")
-    else:
-        try: 
-            os.makedirs(figsdirectory)
-            plt.savefig(filenametosave, bbox_inches="tight")
-        except OSError:
-            if not os.path.isdir(path):
-                raise 
+    figsdirectory = os.path.join(figsdirectory, 'figures')
+    filenametosave = os.path.join(figsdirectory,"ts_" + msgtitle[msgtitle.find("subject"):msgtitle.find(",")] +'.png')
+
+    if not os.path.exists(figsdirectory) is True:
+      os.makedirs(figsdirectory)
+    
+    print("Saving time series at {} \n",filenametosave)
+    plt.savefig(filenametosave, bbox_inches="tight")
+      
     plt.close() 
 
 def motion_correction(epi_file_list, preproc_parameters_list):
@@ -262,6 +258,30 @@ def motion_correction(epi_file_list, preproc_parameters_list):
         moc_res = afmri.motion_correction(f, preproc_parameters_list)
         moc_res = moc_res and moc_res
     return moc_res         
+def read_motioncorrection_report(epi_file_list, directory=None):
+    '''read_motioncorrection_report : reads mcf_results/id_report.txt files 
+    Args: None by default loos at ./mcf_results
+    Output:None print out the number of spikes for each image
+    '''
+    import re
+    nusubjects = len(epi_file_list)
+    dirname =  os.path.dirname(epi_file_list[0])
+    reportfilefinal = os.path.join(os.path.join(dirname, 'mcf_results'), 'ReportfileFinal.txt')
+    ffinal = open(reportfilefinal, 'w' )
+    for i in range(0,nusubjects):
+      basename = os.path.basename(epi_file_list[i])
+      #get only the digits
+      basenamedigits = re.findall(r'\d+', basename)[0]
+      reportfile = basenamedigits + '_report.txt'
+      reportfile = os.path.join(os.path.join(dirname, 'mcf_results'), reportfile)
+      f = open( reportfile, 'r' )
+      for line in f:
+        if re.match("Found", line):
+          linefinalreport = 'Subject:' + basename + '\t Report:' + line + '\n'
+          print('Subject:{} \n, Report:{}\n',basename, line)
+          ffinal.write(linefinalreport) 
+      f.close()
+    ffinal.close()
 
 def slicetime_correction(epi_file_list, preproc_parameters_list):
     ''' slicetime_correction :  corrects each voxel's time-series for the fact 
@@ -471,71 +491,103 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
         print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
     return seed_ts_subjects, plotted_ts
 
-def prepare_mask_creation(preproc_parameters_list):
-    """ prepare_mask_creation : return masker to be callled to extract time seroes"""
-    # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is genrated after
-    mask_type = ['atlas','DMN', 'AN', 'SN', 'brain-wide']
-    idx = 1
+def prepare_mask_creation(preproc_parameters_list, seed_based, mask_type):
+    """ prepare_mask_creation : returns masker to be callled to extract time series
+    Args: preproc_parameters_list
+    Output: masker, mask_label, label_map, seed_id, seed_coords, mask_type[idx]"""
+    # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is generated after
 
-    if mask_type[idx] == 'atlas':
+    if mask_type == 'atlas':
         mask_label = 'cort-maxprob-thr25-2mm'
-        label_map = mask_label
+        #mask_label = 'msdl'
         #mask_label = 'power_2011'
         label_map = afmri.get_atlas_labels(mask_label)
-    elif (mask_type[idx] == 'DMN') or (mask_type[idx] == 'AN') or (mask_type[idx] == 'SN'):
-        mask_label= afmri.get_MNI_coordinates(mask_type[idx])   
+
+    elif (mask_type == 'DMN') or (mask_type == 'AN') or (mask_type == 'SN'):
+        mask_label= afmri.get_MNI_coordinates(mask_type)   
         label_map = [mask_label.keys(), mask_label.values()]
         #label_map = [afmri.get_MNI_coordinates(mask_label.keys(), afmri.get_MNI_coordinates(mask_type[idx]).values()]   
         #coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
-    elif mask_type[idx] == 'brain-wide':
-        print "Mask is brain wide"
-        #mask_label= afmri.get_MNI_coordinates(mask_type[idx])
-        #label_map = [mask_label.keys(), mask_label.values()]  
-        mask_label = 'brain-wide'
-        label_map = mask_label
 
     #mask for the seed, the mask and time series for the non seed is only created if we do seed based analysis
-    masker = afmri.generate_mask(mask_type[idx], mask_label, preproc_parameters_list)
-    #PCC in DMN
-    seed_id = 0
-    seed_coords = label_map[1][seed_id]
-    print "The masker parameters are:%s\n" % (masker.get_params())
-    print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
-    return masker, mask_label, label_map, seed_id, seed_coords, mask_type[idx]
+    print('Calling to afmri.generate_mask {} {} {} \n',mask_type, mask_label, preproc_parameters_list)
+    masker = afmri.generate_mask(mask_type, mask_label, preproc_parameters_list)
+    seed_id = None
+    seed_coords = None
+    if seed_based is True:
+      #PCC in DMN
+      seed_id = 0
+      seed_coords = label_map[1][seed_id]
+      print "The masker parameters are:%s\n" % (masker.get_params())
+      print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
+    return masker, mask_label, label_map, seed_id, seed_coords, mask_type
 
 #######################  ####################### ####################### #######################  
 #### MAIN  PROGRAM ####
 ####################### ####################### ####################### #######################
 def main():
-    #plt.close('all')
+    plt.close('all')
     # Load preprocessing parameters   
     pre_params = preproc_parameters_list()
     freqband = [0.01, 0.1]    
     freqband = [pre_params['high_pass'], pre_params['low_pass']]
- 
+    ################################
+    # mcf motion correction
+    # stc slice tiem correction
+    ################################ 
+    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection']
+    cohort = group[-1]
+    file_list = select_cohort(cohort)
+    # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
+    # or using the subjects id for a hierarchical std structure: verify_and_load_images(None, '['bcpa0537_1','bcpa0578_1', 'bcpa0650_1']','/Users/jaime/vallecas/mario_fa/RF_off','wbold_data.nii')
+    epi_file_list = verify_and_load_images(file_list)
+    print('Images found at:{}', epi_file_list)
+    basename = os.path.basename(epi_file_list[0])
+    dirname = os.path.dirname(epi_file_list[0])
+    #change current directory
+    print('Changing directory to:{}',dirname)
+    os.chdir(dirname)
+    print('Changed directory to:{}',os.getcwd())
+
+    mcf = False
+    stc  = False
+    if mcf is True:
+        print('Performing Motion Correction....\n)')
+        if motion_correction(epi_file_list, pre_params) is not True:
+            sys.exit("ERROR performing Motion Correction!")
+        read_motioncorrection_report(epi_file_list)
+        print('Motion correction Finished. Perform MNI normalization to continue \n')
+        #print('go to /Users/jaime/github/code/production/matlab-normalization/normalize-boldMNI-vPython.m') 
+        print('When MNI normalization is done set file_list and mcf = False :) \n')
+        #3 Steps: 1.gzip -kd *.nii.gz
+        #         2. Normalize
+        #         3. gzip w*.nii
+        # rename epi_file_list adding _mcf
+        # epi_file_list_mcf = list()
+        # for i in range(0,len(epi_file_list)):
+        #     base = os.path.splitext(epi_file_list[i])[0]
+        #     base = base + '_mcf.nii.gz'
+        #     epi_file_list_mcf.append(base)
+        # epi_file_list = verify_and_load_images(epi_file_list_mcf)
+        sys.exit()
+    
+    if stc is True:
+        if slicetime_correction(epi_file_list, pre_params) is not True: 
+            sys.exit("ERROR performing Slice time correction!") 
+        print('Slice Time Correction Finished. Perform MNI normalization to continue \n')
+        print('When MNI normalization is done set file_list and stc = False \n')
+        sys.exit()
+    
     ########### Loading array to do not read from File #########
     load_from_file = False
     if load_from_file is True:
         print " Loading time series from from array... "
         seed_ts,nonseed_ts = load_time_series('seed_ts.npy', 'nonseed_ts.npy')
 
-    ### Testing seed based coherence ######
-    #######################################
-    #all_targets = True
-    #print " Calculating Seed based Coherence, frequency range= {}_{}, all targets={}".format(freqband[0], freqband[1], all_targets)
-
-    #Cxy, f, maskfreqs = calculate_seed_based_coherence(seed_ts, nonseed_ts, freqband, preproc_parameters_list, all_targets=all_targets)
-    #maskfreqs = (f>=freqband[0]) & (f <=freqband[1])
-    # plot the coherece for some of the target voxels only Cxy[0:len(Cxy)]
-    #plot_coherence_with_seed(Cxy[0:len(Cxy)], f, maskfreqs)
-    #######################################
-    ### Testing seed based coherence ######
-
-    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'test']
+    # verify and load from the full path of each images
+    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection']
     cohort = group[0]
     file_list = select_cohort(cohort)
-    # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
-    # or using the subjects id for a hierarchical std structure: verify_and_load_images(None, '['bcpa0537_1','bcpa0578_1', 'bcpa0650_1']','/Users/jaime/vallecas/mario_fa/RF_off','wbold_data.nii')
     epi_file_list = verify_and_load_images(file_list)
     print('Images found at:{}', epi_file_list)
     basename = os.path.basename(epi_file_list[0])
@@ -554,35 +606,17 @@ def main():
         dirname = os.path.dirname(epi_file_list[0])
     else:
         sys.exit('ERROR: File(s) containing the images do not exist')
-    ################################
-    # Preprocessing the images 
-    # mcf motion correction
-    # stc slice tiem correction
-    ################################ 
-    mcf = False
-    stc  = False
-    if mcf is True:
-        if motion_correction(epi_file_list, pre_params) is not True:
-            sys.exit("ERROR performing Motion Correction!")
-    # rename epi_file_list adding _mcf
-    epi_file_list_mcf = list()
-    for i in range(0,len(epi_file_list)):
-        base = os.path.splitext(epi_file_list[i])[0]
-        base = base + '_mcf.nii.gz'
-        epi_file_list_mcf.append(base)
-    epi_file_list = verify_and_load_images(epi_file_list_mcf)
-    if stc is True:
-        if slicetime_correction(epi_file_list, pre_params) is not True: 
-            sys.exit("ERROR performing Slice time correction!")           
+          
     #######################################
     # Create masker from which to extract #
     # time series.                        #
     # mask_type = ['atlas','DMN', 'AN',   #
     #'SN', 'brain_wide']                  #
-    ####################################### 
-    
-    masker, mask_label, label_map, seed_id, seed_coords, mask_type = prepare_mask_creation(pre_params)
-
+    #######################################
+    seed_based = True
+    mask_type = ['atlas','DMN']#, 'AN', 'SN', 'brain-wide']
+    mask_type = mask_type[1]
+    masker, mask_label, label_map, seed_id, seed_coords, mask_type = prepare_mask_creation(pre_params, seed_based, mask_type)
     #######################################
     # Extract time series from the masker #
     # with the preproc parameters         #
@@ -605,11 +639,13 @@ def main():
     #plot spectra for all subjects or only one
     #Set in fourier_spectral_estimation the variable figsdirectory with the directory where the plots will be saved
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
+    #YS: FIX to calculate the PSD also for Atlas not always DMN
     psd_allsubjects = list()
     for i in range(0, seed_ts.shape[0]):
         print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
         psd = afmri.fourier_spectral_estimation(seed_ts[i].T, pre_params, str(i))
         psd_allsubjects.append(psd)
+    
     #YS: plot psd of the average of all subjects
     #psd = afmri.fourier_spectral_estimation(<calculate the mean subjects 120x4>, pre_params)
     #######################################
@@ -617,7 +653,7 @@ def main():
     # Pearson correlation (power based)   #
     # and coherence                       #
     ####################################### 
-    seed_based = True
+    
     # threshold used when plotting the results 
     threshold = 0.6 
     single_subject = False
@@ -686,6 +722,7 @@ def main():
     # Correlation/Covariance/Precision    #
     #                                     #
     ####################################### 
+
     kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation']
     print "Building connectome in Time domain : {}...\n".format(kind_of_correlation)
     # correlation and covariance return identical result
@@ -702,19 +739,22 @@ def main():
     # Coherence                           #
     #                                     #
     ####################################### 
-    print "Building connectome in Frequency domain. Coherency...\n"
-    coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, pre_params, freqband)
-    # convert list into ndarray subjects x time x voxels 
-    coherency_matrices =  np.asarray(coherency_matrices)
-    # mean across subjects
-    coherency_mean_subjects = coherency_matrices.mean(axis=0)
-    #######################################
-    # Plot connectome in Frequency domain # 
-    #######################################
-    print "Plotting the mean of the coherence connectome matrices ...\n"
-    msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
-    what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-    afmri.plot_correlation_matrix(coherency_mean_subjects, label_map, msgtitle, what_to_plot)
+    frequency_analysis = False
+    if frequency_analysis is True:
+      print "Building connectome in Frequency domain. Coherency...\n"
+      coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, pre_params, freqband)
+      # convert list into ndarray subjects x time x voxels 
+      coherency_matrices =  np.asarray(coherency_matrices)
+      # mean across subjects
+      coherency_mean_subjects = coherency_matrices.mean(axis=0)
+      #######################################
+      # Plot connectome in Frequency domain # 
+      #######################################
+      print "Plotting the mean of the coherence connectome matrices ...\n"
+
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
+      what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
+      afmri.plot_correlation_matrix(coherency_mean_subjects, label_map, msgtitle, what_to_plot)
 
     #######################################
     # Plot connectome in time domian      #
@@ -724,20 +764,48 @@ def main():
 
     print "Plotting the mean of the connectome matrices ...\n"
     # msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
-    msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label.keys(),'Precision')
+    if mask_type is 'atlas': #msdl
+      msdl_atlas_dataset = datasets.fetch_atlas_msdl()
+      atlas_imgs = image.iter_img(msdl_atlas_dataset.maps)
+      atlas_region_coords = [plotting.find_xyz_cut_coords(img) for img in atlas_imgs]
+      mcoords2plot = mcoords2plot
+      mlabels = msdl_atlas_dataset.labels
+      mlabels2plot = mlabels
+      
+      #mlabels = label_map.keys()
+      #mlabels2plot = mlabels
+      #mcoords2plot = label_map.values()
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
+    else: #DMN or other  
+      mlabels = mask_label.keys()
+      mlabels2plot = mask_label.keys()
+      mcoords2plot = mask_label.values()
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mlabels,kind_of_correlation[idcor])
     what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-    connectome_to_plot = precision_matrices
+    
+    if kind_of_correlation[idcor] is 'covariance':
+      connectome_to_plot = cov_matrices
+    elif kind_of_correlation[idcor] is 'tangent':
+      connectome_to_plot = tangent_matrices
+    elif kind_of_correlation[idcor] is 'precision':
+      connectome_to_plot = precision_matrices
+    elif kind_of_correlation[idcor] is 'partial correlation':
+      connectome_to_plot = pcorr_matrices
+
     if type(connectome_to_plot) is list:
         connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
         connectome_to_plot_mean = connectome_to_plot.mean(-1)     
-    afmri.plot_correlation_matrix(connectome_to_plot_mean, label_map, msgtitle, what_to_plot)
+    print('Calling to afmri.plot_correlation_matrix Labels:{}',mlabels)
+
+    afmri.plot_correlation_matrix(connectome_to_plot_mean, mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
+    
 
     # Plot connectome for individual subject
-    subject_id = 1
-    print "Plotting the connectome matrices of Group={}, Subject={}\n".format(cohort, subject_id)
-    connectome_to_plot_1s = connectome_to_plot[:,:,subject_id]
-    msgtitle = "Group:{}, Subject_{}, Mask:{}, Connectome Type:{}".format(cohort, subject_id, 'DMN', kind_of_correlation[idcor])
-    afmri.plot_correlation_matrix(connectome_to_plot_1s ,label_map, msgtitle, what_to_plot)
+    # subject_id = 1
+    # print "Plotting the connectome matrices of Group={}, Subject={}\n".format(cohort, subject_id)
+    # connectome_to_plot_1s = connectome_to_plot[:,:,subject_id]
+    # msgtitle = "Group:{}, Subject_{}, Mask:{}, Connectome Type:{}".format(cohort, subject_id, mask_type, kind_of_correlation[idcor])
+    # afmri.plot_correlation_matrix(connectome_to_plot_1s ,mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
 
     #######################################
     # Build Group Covariance              # 
@@ -755,7 +823,8 @@ def main():
     msgtitle = "Precision matrix: Cohort:%s" % (cohort) 
     print "Plotting the Precision Matrix (inverse covariance) \n"
     edge_threshold = .6
-    afmri.plot_correlation_matrix(precision_matrix,label_map, msgtitle, what_to_plot, edge_threshold) #, edge_threshold)
+    afmri.plot_correlation_matrix(precision_matrix ,mlabels2plot, mcoords2plot, msgtitle, what_to_plot, edge_threshold)
+    #afmri.plot_correlation_matrix(precision_matrix,label_map, msgtitle, what_to_plot, edge_threshold) #, edge_threshold)
 
     #######################################
     # Granger causality                   #

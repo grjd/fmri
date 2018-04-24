@@ -129,21 +129,20 @@ def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     
     #concatenate list of 4D images into a single 4D image 
     conc_epi_file_list = concat_imgs(epi_file_list)
-    print('compute the mask and extracts the time series form the file(s)')
+    print('Compute the mask and extracts the time series from the file(s) \n')
     fmri_masked = nifti_masker.fit_transform(conc_epi_file_list)
     
     mask = nifti_masker.mask_img_.get_data().astype(bool)
     shape = mask.shape
-    print('compute the connectivity matrix for the mask', shape)
+    print('Compute the connectivity matrix for the mask \n', shape)
     #connectivity =<204867x204867 sparse matrix of type '<type 'numpy.int64'>'
     #connectivity matrix: which voxel is connected to which
     connectivity = image.grid_to_graph(n_x=shape[0], n_y=shape[1],
                                    n_z=shape[2], mask=mask)
-    #pdb.set_trace()
     tic = datetime.now()
     #FeatureAgglomeration clustering algorithm from scikit-learn 
     n_clusters= 40
-    print('computing Ward...')
+    print('Computing Ward... \n')
     #FeatureAgglomeration(affinity='euclidean', compute_full_tree='auto',connectivity=<204867x204867 sparse matrix of type '<type 'numpy.int64'>'with 1405595 stored elements in COOrdinate format>,linkage='ward', memory='nilearn_cache', n_clusters=40,pooling_func=<function mean at 0x1024aaa28>)
     #linkage : {“ward”, “complete”, “average”}, optional, default “ward”:ward minimizes the variance of the clusters being merged.
     #Ward only accepts  affinity='euclidean'. 
@@ -159,13 +158,13 @@ def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     mean_func_img = mean_img(epi_file_list)
     #msgtitle ="Ward parcellation nclusters=%s, %s" % (n_clusters, os.path.split(os.path.dirname(epi_file_list))[1])
     msgtitle ="Ward parcellation:%s, nclusters=%s" % (cohort,n_clusters) 
-    msgoutputfile = 'Ward_' + 'nclusters=:'+ str(n_clusters) + '.png'
+    msgoutputfile = 'Ward_' + 'nclusters_'+ str(n_clusters) + '.png'
     msgoutputfile = 'figures/' + msgoutputfile
-    first_plot = plot_roi(labels_img, mean_func_img, title=msgtitle, output_file= msgoutputfile, display_mode='ortho', cut_coords=(0,-52,18))
-
-    cut_coords = first_plot.cut_coords
-    print ('cut coords:', cut_coords)
+    cut_coords = (0,-52,18)
+    first_plot = plot_roi(labels_img, mean_func_img, title=msgtitle, output_file= msgoutputfile, display_mode='ortho', cut_coords=cut_coords)
+    #print ('cut coords:', cut_coords)
     dirname = os.path.dirname(epi_file_list[0])
+    #save the nift image
     filenameres = "ward_parcellation.nii.gz_{}.nii.gz".format(cohort)
     imageresult = os.path.join(dirname, filenameres)
     print('Result is saved in file %s', imageresult) 
@@ -205,7 +204,7 @@ def get_MNI_coordinates(label):
                     (randint(max_coords_MNI[1][0], max_coords_MNI[1][1])),
                     (randint(max_coords_MNI[2][0], max_coords_MNI[2][1]))]
             dim_coords.append(dim_coord)
-        pdb.set_trace()
+
     else: 
         print " ERROR: label:", label, " do not found, returning empty list of coordinates!"   
     print("MNI coordinates :{}",dim_coords)
@@ -266,13 +265,14 @@ def get_atlas_labels(label):
         #dataset = datasets.fetch_coords_power_2011()
         #coords = np.vstack((dataset.rois['x'], dataset.rois['y'], dataset.rois['z'])).T
         #msdl  map
-        dataset = datasets.fetch_atlas_msdl()
+        print('MSDL atlas!!')
+        atlas = datasets.fetch_atlas_msdl()
         # Loading atlas image stored in 'maps'
-        atlas_filename = dataset['maps']
+        atlas_filename = atlas['maps']
         # Loading atlas data stored in 'labels'
-        labels = dataset['labels']
-        coords = dataset.regi
-        on_coords
+        labels = atlas['labels']
+        dim_coords_mm = atlas.region_coords
+
     return dim_coords_mm
                 
                           
@@ -287,32 +287,55 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
     template = load_mni152_template()
     from nilearn.image import smooth_img
     masker = []
+    print('Generatimg mask....')
+
     #atlas type of mask
     if mask_type == 'atlas':
-        atlas_name = mask_coords
-        print("Loading Harvard-Oxford parcellation from FSL if installed.\
-        If not, it downloads it and stores it in NILEARN_DATA directory. \
-        Atlas to load: cort-maxprob-thr0-1mm, cort-maxprob-thr0-2mm, \
-        cort-maxprob-thr25-1mm, cort-maxprob-thr25-2mm, cort-maxprob-thr50-1mm, \
-        cort-maxprob-thr50-2mm, sub-maxprob-thr0-1mm, sub-maxprob-thr0-2mm, \
-        sub-maxprob-thr25-1mm, sub-maxprob-thr25-2mm, sub-maxprob-thr50-1mm, \
-        sub-maxprob-thr50-2mm, cort-prob-1mm, cort-prob-2mm, sub-prob-1mm, sub-prob-2mm .")
-        print('Selected atlas to download is %s', atlas_name)
-        dataset = datasets.fetch_atlas_harvard_oxford(atlas_name)
-        #dataset = datasets.fetch_coords_power_2011()
-        atlas_filename = dataset.maps
-        print('Atlas filename %s:',atlas_filename )
-        masker = NiftiLabelsMasker(labels_img=atlas_filename, 
+        plotting_atlas = True
+        if mask_coords[0:4] == 'cort':
+            plotting_atlas_probabilistic = False
+            atlas_name = mask_coords
+            print("Loading Harvard-Oxford parcellation from FSL if installed.\
+            If not, it downloads it and stores it in NILEARN_DATA directory. \
+            Atlas to load: cort-maxprob-thr0-1mm, cort-maxprob-thr0-2mm, \
+            cort-maxprob-thr25-1mm, cort-maxprob-thr25-2mm, cort-maxprob-thr50-1mm, \
+            cort-maxprob-thr50-2mm, sub-maxprob-thr0-1mm, sub-maxprob-thr0-2mm, \
+            sub-maxprob-thr25-1mm, sub-maxprob-thr25-2mm, sub-maxprob-thr50-1mm, \
+            sub-maxprob-thr50-2mm, cort-prob-1mm, cort-prob-2mm, sub-prob-1mm, sub-prob-2mm .")
+            print('Selected atlas to download is %s', atlas_name)
+            dataset = datasets.fetch_atlas_harvard_oxford(atlas_name)
+            #dataset = datasets.fetch_coords_power_2011()
+            atlas_filename = dataset.maps
+            print('Atlas filename %s:',atlas_filename )
+            masker = NiftiLabelsMasker(labels_img=atlas_filename, 
                                    smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
                                    standardize=preproc_parameters['standardize'],
                                    detrend=preproc_parameters['detrend'], 
                                    low_pass=preproc_parameters['low_pass'],
                                    high_pass=preproc_parameters['high_pass'],
                                    t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
-        plotting_atlas = True
+        elif mask_coords[0:4] == 'msdl':
+            plotting_atlas_probabilistic = True
+            plotting_atlas = False
+            atlas_name = mask_coords
+            print('Loading Probabilistic MSDL Atlas:{} \n', atlas_name)
+            atlas = datasets.fetch_atlas_msdl()
+            atlas_filename = atlas['maps']
+            labels = atlas['labels']
+            coords = atlas.region_coords
+            masker = NiftiLabelsMasker(labels_img=atlas_filename, smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
+                standardize=preproc_parameters['standardize'],
+                detrend=preproc_parameters['detrend'], 
+                low_pass=preproc_parameters['low_pass'],
+                high_pass=preproc_parameters['high_pass'],
+                t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
+
         if plotting_atlas is True:
             msgtitle = "Selected atlas:{}".format(atlas_name)
             plot_roi(atlas_filename, title=msgtitle)
+        elif plotting_atlas_probabilistic is True:
+            dmn_nodes = image.index_img(atlas_filename, [3, 4, 5, 6])
+            plot_prob_atlas(dmn_nodes, cut_coords=(0, -55, 29), title="MSDL probabilistic atlas DMN")
     elif mask_type == 'DMN':
         # Extract the coordinates from the dictionary
         dim_coords = mask_coords
@@ -370,9 +393,14 @@ def motion_correction(epi_file, preproc_params):
     
     dirname = os.path.dirname(epi_file)
     basename = os.path.basename(epi_file)
-    mcfoutput = os.path.basename(epi_file)[:5] + '_outliers.txt'
+    mcfoutput = os.path.basename(epi_file)[:5] + 'outliers.txt'
+    mcf_results_path = os.path.join(dirname,'mcf_results')
+    if not os.path.exists(mcf_results_path):
+        print('Creating mcf results path at {}',mcf_results_path)
+        os.makedirs(mcf_results_path)
+
     mcfoutput = os.path.join('mcf_results', str(mcfoutput))
-    mcfoutliers = os.path.basename(epi_file)[:5] + '_report.txt'
+    mcfoutliers = os.path.basename(epi_file)[:5] + 'report.txt'
     mcfoutliers = os.path.join('mcf_results', str(mcfoutliers))
     # epi_file_output must exist 'touch epi_file_output'
     epi_file_output = os.path.join(dirname, str(epi_file))
@@ -390,11 +418,14 @@ def motion_correction(epi_file, preproc_params):
     # subprocess.check_output(["fsl_motion_outliers", "-i", str(epi_file_output), "-o", "output_motion_outliers", "-v"])
     mcf_outputfilename = os.path.basename(epi_file_output)[:-4] + '_mcf.' + 'nii.gz'
     subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-o", mcf_outputfilename,"-cost", "mutualinfo", "-report"])
-    print("To calculate the putlier run:")
-    print "fsl_motion_outliers -i {} --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
+
+    print("Calculating the outlier run and saving the report...")
+    print "fsl_motion_outliers -i {} --dummy=4 --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
     #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", "-v >", mcfoutliers])
-    #subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--nomoco", "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
-    #fsl_motion_outliers -i w0032_fMRI_mcf.nii.gz  --nomoco  -o 0032_outliers.txt -v > 0032_numberorbadslides.txt
+    out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--dummy=4", "--nomoco", "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
+    f = open( mcfoutliers, 'w' )
+    f.write( out + '\n' )
+    f.close()
     return True
 
 def slicetime_correction(epi_file, preproc_params):
@@ -525,7 +556,7 @@ def test_for_granger(time_series, preproc_parameters=None, label_map=None, order
                     print "Reject the Null Hypothesis A doesn't granger cause B for pair %d , order:%d lrtest=%f" % (testp,orderi,lr)
     
     if type(time_series) is np.ndarray:
-        print "Time serties for only one subject"
+        print "Time series for only one subject"
         time_series = np.transpose(time_series)
     else:
         #pdb.set_trace()
@@ -725,7 +756,7 @@ def build_connectome_in_frequency(time_series, preproc_params, freqband=None):
     return subjects_matrices            
                 
     
-def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None, edge_threshold=None):
+def plot_correlation_matrix(corr_matrix, label_map, coord_map, msgtitle, what_to_plot=None, edge_threshold=None):
     ''' plot correlation matrix
     Input: ONE correlation matrix
     label_map : dict with rois (label_map.keys()) and values (label_map.values())
@@ -741,17 +772,21 @@ def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None,
         plot_heatmap = what_to_plot['plot_heatmap']
         plot_graph = what_to_plot['plot_graph']
         plot_connectome = what_to_plot['plot_connectome']       
+
     if plot_heatmap is True:
         print('Plotting correlation_matrix as a heatmap from nitime...')
-        fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle)    
+        #fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle)  
+        fig_h_drawx = drawmatrix_channels(corr_matrix, label_map, size=[10., 10.], color_anchor=0, title= msgtitle)   
     if plot_graph == True:    
         print('Plotting correlation_matrix as a (circular) network nitime...')
-        fig_g_drawg = drawgraph_channels(corr_matrix, label_map[0],title=msgtitle)
+        #fig_g_drawg = drawgraph_channels(corr_matrix, label_map[0],title=msgtitle)
+        fig_g_drawg = drawgraph_channels(corr_matrix, label_map,title=msgtitle)
     #plotting connectivity network with brain overimposed
     if plot_connectome is True:
-        edge_threshold = 0 # plot all edges with intensity automatic
-        fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
-        
+        if edge_threshold is None:
+            edge_threshold = 0 # plot all edges with intensity automatic
+        #fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
+        fig_c_drawg = plotting.plot_connectome(corr_matrix, coord_map,edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") 
         
             #if  what_to_plot['plot_heatmap'] is True:
     #if  what_to_plot['plot_graph'] is True:
