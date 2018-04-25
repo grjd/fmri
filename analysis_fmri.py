@@ -786,7 +786,7 @@ def plot_correlation_matrix(corr_matrix, label_map, coord_map, msgtitle, what_to
         if edge_threshold is None:
             edge_threshold = 0 # plot all edges with intensity automatic
         #fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
-        fig_c_drawg = plotting.plot_connectome(corr_matrix, coord_map,edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") 
+        fig_c_drawg = plotting.plot_connectome(corr_matrix, coord_map,edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho", colorbar=True) 
         
             #if  what_to_plot['plot_heatmap'] is True:
     #if  what_to_plot['plot_graph'] is True:
