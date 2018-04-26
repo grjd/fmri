@@ -276,7 +276,7 @@ def get_atlas_labels(label):
     return dim_coords_mm
                 
                           
-def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None):
+def generate_mask(mask_type, preproc_parameters, epi_filename=None):
     '''generate_mask returns a mask object depending on the mask type
     '''
     from nilearn import datasets
@@ -287,60 +287,69 @@ def generate_mask(mask_type, mask_coords, preproc_parameters, epi_filename=None)
     template = load_mni152_template()
     from nilearn.image import smooth_img
     masker = []
-    print('Generatimg mask....')
+    print('Generating mask {} \n', mask_type)
 
     #atlas type of mask
-    if mask_type == 'atlas':
-        plotting_atlas = True
-        if mask_coords[0:4] == 'cort':
-            plotting_atlas_probabilistic = False
-            atlas_name = mask_coords
-            print("Loading Harvard-Oxford parcellation from FSL if installed.\
-            If not, it downloads it and stores it in NILEARN_DATA directory. \
-            Atlas to load: cort-maxprob-thr0-1mm, cort-maxprob-thr0-2mm, \
-            cort-maxprob-thr25-1mm, cort-maxprob-thr25-2mm, cort-maxprob-thr50-1mm, \
-            cort-maxprob-thr50-2mm, sub-maxprob-thr0-1mm, sub-maxprob-thr0-2mm, \
-            sub-maxprob-thr25-1mm, sub-maxprob-thr25-2mm, sub-maxprob-thr50-1mm, \
-            sub-maxprob-thr50-2mm, cort-prob-1mm, cort-prob-2mm, sub-prob-1mm, sub-prob-2mm .")
-            print('Selected atlas to download is %s', atlas_name)
-            dataset = datasets.fetch_atlas_harvard_oxford(atlas_name)
-            #dataset = datasets.fetch_coords_power_2011()
-            atlas_filename = dataset.maps
-            print('Atlas filename %s:',atlas_filename )
-            masker = NiftiLabelsMasker(labels_img=atlas_filename, 
-                                   smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
-                                   standardize=preproc_parameters['standardize'],
-                                   detrend=preproc_parameters['detrend'], 
-                                   low_pass=preproc_parameters['low_pass'],
-                                   high_pass=preproc_parameters['high_pass'],
-                                   t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
-        elif mask_coords[0:4] == 'msdl':
-            plotting_atlas_probabilistic = True
-            plotting_atlas = False
-            atlas_name = mask_coords
-            print('Loading Probabilistic MSDL Atlas:{} \n', atlas_name)
-            atlas = datasets.fetch_atlas_msdl()
-            atlas_filename = atlas['maps']
-            labels = atlas['labels']
-            coords = atlas.region_coords
-            masker = NiftiLabelsMasker(labels_img=atlas_filename, smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
-                standardize=preproc_parameters['standardize'],
-                detrend=preproc_parameters['detrend'], 
-                low_pass=preproc_parameters['low_pass'],
-                high_pass=preproc_parameters['high_pass'],
-                t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
+    if mask_type.find('cort-maxprob-thr25-2mm') > -1:
+        print("Loading Harvard-Oxford parcellation from FSL if installed.\
+        If not, it downloads it and stores it in NILEARN_DATA directory. \
+        Atlas to load: cort-maxprob-thr0-1mm, cort-maxprob-thr0-2mm, \
+        cort-maxprob-thr25-1mm, cort-maxprob-thr25-2mm, cort-maxprob-thr50-1mm, \
+        cort-maxprob-thr50-2mm, sub-maxprob-thr0-1mm, sub-maxprob-thr0-2mm, \
+        sub-maxprob-thr25-1mm, sub-maxprob-thr25-2mm, sub-maxprob-thr50-1mm, \
+        sub-maxprob-thr50-2mm, cort-prob-1mm, cort-prob-2mm, sub-prob-1mm, sub-prob-2mm .")
+        atlas = datasets.fetch_atlas_harvard_oxford(mask_type)
+        atlas_filename = atlas.maps
+        print('Selected atlas to download is %s', atlas_filename)
+        masker = NiftiLabelsMasker(labels_img=atlas_filename, 
+                               smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
+                               standardize=preproc_parameters['standardize'],
+                               detrend=preproc_parameters['detrend'], 
+                               low_pass=preproc_parameters['low_pass'],
+                               high_pass=preproc_parameters['high_pass'],
+                               t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
+        print('Plotting the Atlas {} \n', atlas_filename)
+        plot_roi(atlas_filename)
 
-        if plotting_atlas is True:
-            msgtitle = "Selected atlas:{}".format(atlas_name)
-            plot_roi(atlas_filename, title=msgtitle)
-        elif plotting_atlas_probabilistic is True:
-            dmn_nodes = image.index_img(atlas_filename, [3, 4, 5, 6])
-            plot_prob_atlas(dmn_nodes, cut_coords=(0, -55, 29), title="MSDL probabilistic atlas DMN")
+    if mask_type.find('sub-maxprob-thr25-2mm') > -1:
+
+        atlas = datasets.fetch_atlas_harvard_oxford(mask_type)
+        #dataset = datasets.fetch_coords_power_2011()
+        atlas_filename = atlas.maps
+        print('Atlas filename %s:',atlas_filename)
+        masker = NiftiLabelsMasker(labels_img=atlas_filename, 
+                               smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
+                               standardize=preproc_parameters['standardize'],
+                               detrend=preproc_parameters['detrend'], 
+                               low_pass=preproc_parameters['low_pass'],
+                               high_pass=preproc_parameters['high_pass'],
+                               t_r=preproc_parameters['t_r'],verbose=5, memory_level=1)
+        print('Plotting the Atlas {} \n', atlas_filename)
+        plot_roi(atlas_filename)
+    
+    elif mask_type.find('msdl') > -1:
+        # plotting_atlas_probabilistic = True
+        # plotting_atlas = False
+        # print('Loading Probabilistic MSDL Atlas:{} \n', atlas_name)
+        atlas = datasets.fetch_atlas_msdl()
+        atlas_filename = atlas['maps']
+        labels = atlas['labels']
+        coords = atlas.region_coords
+        masker = NiftiMapsMasker(maps_img=atlas_filename, smoothing_fwhm=preproc_parameters['smoothing_fwhm'], 
+            standardize=preproc_parameters['standardize'],
+            detrend=preproc_parameters['detrend'], 
+            low_pass=preproc_parameters['low_pass'],
+            high_pass=preproc_parameters['high_pass'],
+            t_r=preproc_parameters['t_r'],verbose=5, memory='nilearn_cache')
+        print('Plotting the probabilistic atlas MSDL \n')
+        plot_prob_atlas(atlas_filename, title=mask_type)
+
     elif mask_type == 'DMN':
         # Extract the coordinates from the dictionary
-        dim_coords = mask_coords
-        print " The mask is the list of voxels:", dim_coords.keys(), "in MNI space:", dim_coords.values()
-        masker = NiftiSpheresMasker(dim_coords.values(), radius=8,
+        #print " The mask is the list of voxels:", dim_coords.keys(), "in MNI space:", dim_coords.values()
+        mask_label= get_MNI_coordinates(mask_type)
+        #labelsandcoords = [mask_label.keys(), mask_label.values()][1]
+        masker = NiftiSpheresMasker(mask_label.values(), radius=8,
                                                detrend=preproc_parameters['detrend'],
                                                smoothing_fwhm=preproc_parameters['smoothing_fwhm'],
                                                standardize=preproc_parameters['standardize'],
@@ -471,7 +480,7 @@ def extract_timeseries_from_mask(masker, epi_file):
     if it is just one file it returns one ndarray time x voxels'''      
     print "'........Extracting time series for image {}:".format(epi_file)
     time_series = masker.fit_transform(epi_file)        
-    print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])      
+    print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])
     return time_series
 
 def build_granger_matrix(time_series, preproc_parameters=None, label_map=None):
@@ -756,7 +765,7 @@ def build_connectome_in_frequency(time_series, preproc_params, freqband=None):
     return subjects_matrices            
                 
     
-def plot_correlation_matrix(corr_matrix, label_map, coord_map, msgtitle, what_to_plot=None, edge_threshold=None):
+def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None, edge_threshold=None):
     ''' plot correlation matrix
     Input: ONE correlation matrix
     label_map : dict with rois (label_map.keys()) and values (label_map.values())
@@ -767,12 +776,9 @@ def plot_correlation_matrix(corr_matrix, label_map, coord_map, msgtitle, what_to
     if what_to_plot is None:
         plot_heatmap = True
         plot_graph = True
-        plot_connectome = True
     else:
         plot_heatmap = what_to_plot['plot_heatmap']
-        plot_graph = what_to_plot['plot_graph']
-        plot_connectome = what_to_plot['plot_connectome']       
-
+        plot_graph = what_to_plot['plot_graph']   
     if plot_heatmap is True:
         print('Plotting correlation_matrix as a heatmap from nitime...')
         #fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle)  
@@ -780,13 +786,13 @@ def plot_correlation_matrix(corr_matrix, label_map, coord_map, msgtitle, what_to
     if plot_graph == True:    
         print('Plotting correlation_matrix as a (circular) network nitime...')
         #fig_g_drawg = drawgraph_channels(corr_matrix, label_map[0],title=msgtitle)
-        fig_g_drawg = drawgraph_channels(corr_matrix, label_map,title=msgtitle)
+        fig_g_drawg = drawgraph_channels(corr_matrix, label_map, title=msgtitle)
     #plotting connectivity network with brain overimposed
-    if plot_connectome is True:
-        if edge_threshold is None:
-            edge_threshold = 0 # plot all edges with intensity automatic
-        #fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
-        fig_c_drawg = plotting.plot_connectome(corr_matrix, coord_map,edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho", colorbar=True) 
+    # if plot_connectome is True:
+    #     if edge_threshold is None:
+    #         edge_threshold = 0 # plot all edges with intensity automatic
+    #     #fig_c_drawg = plotting.plot_connectome(corr_matrix, label_map[1],edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho") #,edge_vmax=.5, edge_vmin=-.5       
+    #     fig_c_drawg = plotting.plot_connectome(corr_matrix, coord_map,edge_threshold=edge_threshold, title=msgtitle,display_mode="ortho", colorbar=True) 
         
             #if  what_to_plot['plot_heatmap'] is True:
     #if  what_to_plot['plot_graph'] is True:
@@ -843,8 +849,6 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
     if plotPxx is True: 
         fig, ax = plt.subplots(ts.shape[0], 1, sharex=True, sharey=True, squeeze=False)    
     for i in range(0, ts.shape[0]):
-        mnicoords = get_MNI_coordinates('DMN')
-        msgtitlepre = "{}".format('DMN')
         #nperseg is the length of each segment, 256 by default
         nperseg = 16
         f, Pxx_den = signal.welch(ts[i,:], image_params['fs'], nperseg=nperseg, detrend='constant', nfft =image_params['nfft'], scaling = 'density')  
@@ -862,9 +866,9 @@ def fourier_spectral_estimation(ts, image_params, msgtitle=None):
             if i == ts.shape[0]-1:
                 ax[i,0].set_xlabel('frequency [Hz]')
             ax[i,0].set_ylabel('PSD [V**2/Hz]')
-            msgtitlepost = "{}_node:{}".format(msgtitlepre, mnicoords.keys()[i])
+            msgtitlepost = "{}_node:{}".format(msgtitle, str(i))
             ax[i,0].set_title(msgtitlepost)  
-    print("Saving PSD results")    
+    print("Saving PSD results for {}\n", 'subject:' + msgtitle)    
     save_plot(ax, 'subject:' + msgtitle)
     return  psd_results 
 

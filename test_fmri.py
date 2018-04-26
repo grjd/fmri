@@ -20,6 +20,7 @@ from nilearn import datasets
 from nilearn.input_data import NiftiMasker 
 from nilearn.datasets import load_mni152_template
 from nilearn.image import resample_to_img
+from nilearn.input_data import NiftiMapsMasker
 
 print('Calling to test_fmri to test functions in analysis_fmri')
 #Load a list of images load_epi_images(epi_file_list=None, subjects_list=None, dir_name=None, f_name=None)
@@ -213,7 +214,7 @@ def select_cohort(cohort_group):
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
     epi_file_list_one = ['/Users/jaime/vallecas/data/cyst_arach/wcyst_fMRI_RESTING_S_20171018163846_10.nii']
     epi_file_list_one = ['/Users/jaime/Downloads/s_008.nii']
-    just_testing = ['/Users/jaime/Downloads/just_test/w0313_fMRI.nii', '/Users/jaime/Downloads/just_test/w0469_fMRI.nii']
+    just_testing = ['/Users/jaime/Downloads/testmni/w0022_fMRI_mcf.nii.gz', '/Users/jaime/Downloads/testmni/w0028_fMRI_mcf.nii.gz']
     
     if cohort_group is 'converter':               
         return epi_file_list_conv
@@ -394,7 +395,7 @@ def extract_seed_ts(time_series,seed_id):
 
 def extract_non_seed_mask_and_ts(epi_file, preproc_parameters_list):    
     ''' extract_non_seed_mask_and_ts '''
-    nonseed_masker = afmri.generate_mask('brain-wide', [], preproc_parameters_list, epi_file)
+    nonseed_masker = afmri.generate_mask('brain-wide', preproc_parameters_list, epi_file)
     nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file) 
     return nonseed_masker, nonseed_ts
     
@@ -508,41 +509,48 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
                 plotted_ts = prepare_plot_time_series(time_series, i)
                 plotted_ts_list.append(plotted_ts)    
         # list of time series as an array         
+        # print('AQUI')
+        # pdb.set_trace()
         seed_ts_subjects =  np.asarray(time_series_list)
         plotted_ts = np.asarray(plotted_ts_list) 
         print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
     return seed_ts_subjects, plotted_ts
 
-def prepare_mask_creation(preproc_parameters_list, seed_based, mask_type):
-    """ prepare_mask_creation : returns masker to be callled to extract time series
-    Args: preproc_parameters_list
-    Output: masker, mask_label, label_map, seed_id, seed_coords, mask_type[idx]"""
-    # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is generated after
+# def prepare_mask_creation(preproc_parameters_list, seed_based, mask_type):
+#     """ prepare_mask_creation : returns masker to be callled to extract time series
+#     Args: preproc_parameters_list
+#     Output: masker, mask_label, label_map, seed_id, seed_coords, mask_type[idx]"""
+#     # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is generated after
 
-    if mask_type == 'atlas':
-        mask_label = 'cort-maxprob-thr25-2mm'
-        #mask_label = 'msdl'
-        #mask_label = 'power_2011'
-        label_map = afmri.get_atlas_labels(mask_label)
+#     if mask_type.find('atlas-cort-maxprob-thr25-2mm') > -1:
+#       mask_label = 'cort-maxprob-thr25-2mm'
+#       label_map = afmri.get_atlas_labels(mask_label)
+#     elif mask_type.find('atlas-msdl') > -1:
 
-    elif (mask_type == 'DMN') or (mask_type == 'AN') or (mask_type == 'SN'):
-        mask_label= afmri.get_MNI_coordinates(mask_type)   
-        label_map = [mask_label.keys(), mask_label.values()]
-        #label_map = [afmri.get_MNI_coordinates(mask_label.keys(), afmri.get_MNI_coordinates(mask_type[idx]).values()]   
-        #coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
+#     elif (mask_type == 'DMN') or (mask_type == 'AN') or (mask_type == 'SN'):
+#         mask_label= afmri.get_MNI_coordinates(mask_type)   
+#         label_map = [mask_label.keys(), mask_label.values()]
+#         #label_map = [afmri.get_MNI_coordinates(mask_label.keys(), afmri.get_MNI_coordinates(mask_type[idx]).values()]   
+#         #coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
 
-    #mask for the seed, the mask and time series for the non seed is only created if we do seed based analysis
-    print('Calling to afmri.generate_mask {} {} {} \n',mask_type, mask_label, preproc_parameters_list)
-    masker = afmri.generate_mask(mask_type, mask_label, preproc_parameters_list)
-    seed_id = None
-    seed_coords = None
-    if seed_based is True:
-      #PCC in DMN
-      seed_id = 0
-      seed_coords = label_map[1][seed_id]
-      print "The masker parameters are:%s\n" % (masker.get_params())
-      print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
-    return masker, mask_label, label_map, seed_id, seed_coords, mask_type
+#     #mask for the seed, the mask and time series for the non seed is only created if we do seed based analysis
+#     print('Calling to afmri.generate_mask {} {} {} \n',mask_type, mask_label, preproc_parameters_list)
+#     masker = afmri.generate_mask(mask_type, preproc_parameters_list)
+#     seed_id = None
+#     seed_coords = None
+#     if seed_based is True:
+#       #PCC in DMN
+#       seed_id = 0
+#       seed_coords = label_map[1][seed_id]
+#       print "The masker parameters are:%s\n" % (masker.get_params())
+#       print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
+#     return masker, mask_label, label_map, seed_id, seed_coords, mask_type
+
+
+def plot_graph_from_atlas(corr_matrix, time_series, atlas):
+  """plot_graph_from_atlas  plot the corresponding graph from an atlas (extratcted time series)
+  Args: corr_matrix squared matrix, time_series: time series 
+  Output """
 
 #######################  ####################### ####################### #######################  
 #### MAIN  PROGRAM ####
@@ -607,8 +615,8 @@ def main():
         seed_ts,nonseed_ts = load_time_series('seed_ts.npy', 'nonseed_ts.npy')
 
     # verify and load from the full path of each images
-    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection']
-    cohort = group[1]
+    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
+    cohort = group[-1]
     file_list = select_cohort(cohort)
     epi_file_list = verify_and_load_images(file_list)
     print('Images found at:{}', epi_file_list)
@@ -636,9 +644,33 @@ def main():
     #'SN', 'brain_wide']                  #
     #######################################
     seed_based = False
-    mask_type = ['atlas','DMN']#, 'AN', 'SN', 'brain-wide']
+    mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
     mask_type = mask_type[1]
-    masker, mask_label, label_map, seed_id, seed_coords, mask_type = prepare_mask_creation(pre_params, seed_based, mask_type)
+    if mask_type.find('DMN') > -1 :
+      print('The Mask type is a Network not an Atlas...\n')
+      mask_label= afmri.get_MNI_coordinates(mask_type)
+      labels = mask_label.keys()
+      coords = mask_label.values()
+      print('labels are {} coords are {} \n',labels, coords)
+    elif mask_type.find('msdl') > -1:
+      atlas = datasets.fetch_atlas_msdl()
+      atlas_filename = atlas['maps']
+      labels = atlas['labels']
+      coords = atlas.region_coords
+    elif mask_type.find('cort-maxprob-thr25-2mm') > -1:
+      atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')
+      atlas_filename = atlas.maps
+      labels = atlas.labels
+      #coords are missing!!
+
+    elif mask_type.find('sub-maxprob-thr25-2mm') > -1:
+      atlas = datasets.fetch_atlas_harvard_oxford('sub-maxprob-thr25-2mm')
+      atlas_filename = atlas.maps
+      labels = atlas.labels
+      #coords are missing!!
+
+    #masker, mask_label, label_map, seed_id, seed_coords, mask_type = prepare_mask_creation(pre_params, seed_based, mask_type)
+    masker = afmri.generate_mask(mask_type, pre_params, epi_filename=None)
     #######################################
     # Extract time series from the masker #
     # with the preproc parameters         #
@@ -652,6 +684,7 @@ def main():
     #Set in plot_time_series the vartiable figsdirectory with the directory where the plots will be saved
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
     seed_ts, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list)#, subject_id=0)
+    # seed_ts == plotted_ts when more than 1 subject
     seed_ts_subjects = seed_ts
     #prepare_timeseries_extraction(masker, epi_file_list)
     
@@ -665,9 +698,9 @@ def main():
     psd_allsubjects = list()
     for i in range(0, seed_ts.shape[0]):
         print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
-        psd = afmri.fourier_spectral_estimation(seed_ts[i].T, pre_params, str(i))
+        psd = afmri.fourier_spectral_estimation(seed_ts[i].T, pre_params, 'subject:' + str(i))
         psd_allsubjects.append(psd)
-    
+
     #YS: plot psd of the average of all subjects
     #psd = afmri.fourier_spectral_estimation(<calculate the mean subjects 120x4>, pre_params)
     #######################################
@@ -760,16 +793,16 @@ def main():
     if not os.path.exists(matricesdirectory) is True:
       print('Creating matrices directory....\n')
       os.makedirs(matricesdirectory)
-    arraytosave = os.path.join(matricesdirectory,"cov_matrices.npy")
+    arraytosave = os.path.join(matricesdirectory,"cov_matrices_" + mask_type + ".npy")
     print("Saving cov_matrices at {} \n",arraytosave) 
     np.save(arraytosave, cov_matrices)
-    arraytosave = os.path.join(matricesdirectory,"tangent_matrices.npy")
+    arraytosave = os.path.join(matricesdirectory,"tangent_matrices_" + mask_type + ".npy")
     print("Saving tangent_matrices at {} \n",arraytosave)
     np.save(arraytosave, tangent_matrices)
-    arraytosave = os.path.join(matricesdirectory,"precision_matrices.npy")
+    arraytosave = os.path.join(matricesdirectory,"precision_matrices_" + mask_type + ".npy")
     print("Saving precision_matrices at {} \n",arraytosave)
     np.save(arraytosave, precision_matrices)
-    arraytosave = os.path.join(matricesdirectory,"pcorr_matrices.npy")
+    arraytosave = os.path.join(matricesdirectory,"pcorr_matrices_" + mask_type + ".npy")
     print("Saving pcorr_matrices at {} \n",arraytosave)
     np.save(arraytosave, pcorr_matrices)
 
@@ -792,8 +825,8 @@ def main():
       print "Plotting the mean of the coherence connectome matrices ...\n"
 
       msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
-      what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-      afmri.plot_correlation_matrix(coherency_mean_subjects, label_map, msgtitle, what_to_plot)
+      what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
+      afmri.plot_correlation_matrix(coherency_mean_subjects, labels, msgtitle, what_to_plot)
 
     #######################################
     # Plot connectome in time domian      #
@@ -802,26 +835,6 @@ def main():
     ####################################### 
 
     print "Plotting the mean of the connectome matrices ...\n"
-    # msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
-    if mask_type is 'atlas': #msdl
-      msdl_atlas_dataset = datasets.fetch_atlas_msdl()
-      atlas_imgs = image.iter_img(msdl_atlas_dataset.maps)
-      atlas_region_coords = [plotting.find_xyz_cut_coords(img) for img in atlas_imgs]
-      mcoords2plot = mcoords2plot
-      mlabels = msdl_atlas_dataset.labels
-      mlabels2plot = mlabels
-      
-      #mlabels = label_map.keys()
-      #mlabels2plot = mlabels
-      #mcoords2plot = label_map.values()
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
-    else: #DMN or other  
-      mlabels = mask_label.keys()
-      mlabels2plot = mask_label.keys()
-      mcoords2plot = mask_label.values()
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mlabels,kind_of_correlation[idcor])
-    what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-    
     if kind_of_correlation[idcor] is 'covariance':
       connectome_to_plot = cov_matrices
     elif kind_of_correlation[idcor] is 'tangent':
@@ -830,13 +843,63 @@ def main():
       connectome_to_plot = precision_matrices
     elif kind_of_correlation[idcor] is 'partial correlation':
       connectome_to_plot = pcorr_matrices
-
+    what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
+    print('Transforming connectome_to_plot to ndarray \n')
     if type(connectome_to_plot) is list:
-        connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
-        connectome_to_plot_mean = connectome_to_plot.mean(-1)     
-    print('Calling to afmri.plot_correlation_matrix Labels:{}',mlabels)
+      connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
+      connectome_to_plot_mean = connectome_to_plot.mean(-1)     
+        
+    if mask_type.find('msdl') > -1:
+      print('Plotting the Mean subjects connectome for MSDL Atlas .... \n')
+      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+      # for a single subject eg id=0
+      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+      print('Plotting the heat map and graph for MSDL Atlas .... \n')
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+    elif mask_type.find('DMN') > -1:
+      print('Plotting the Mean subjects connectome for the DMN .... \n')
+      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+      # for a single subject eg id=0
+      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+      print('Plotting the heat map and graph for the DMN .... \n')
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+    elif mask_type.find('maxprob') > -1:
+      print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, kind_of_correlation[idcor])
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+      # Cant plot the connetome because I dont have the coords
 
-    afmri.plot_correlation_matrix(connectome_to_plot_mean, mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
+    
+    pdb.set_trace()
+    
+
+    # if mask_type is 'atlas': #msdl
+    #   coords = 
+    #   msdl_atlas_dataset = datasets.fetch_atlas_msdl()
+    #   atlas_imgs = image.iter_img(msdl_atlas_dataset.maps)
+    #   atlas_region_coords = [plotting.find_xyz_cut_coords(img) for img in atlas_imgs]
+    #   mcoords2plot = mcoords2plot
+    #   mlabels = msdl_atlas_dataset.labels
+    #   mlabels2plot = mlabels
+      
+    #   #mlabels = label_map.keys()
+    #   #mlabels2plot = mlabels
+    #   #mcoords2plot = label_map.values()
+    #   msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
+    # else: #DMN or other  
+    #   mlabels = mask_label.keys()
+    #   mlabels2plot = mask_label.keys()
+    #   mcoords2plot = mask_label.values()
+    #   msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mlabels,kind_of_correlation[idcor])
+    
+    
+
+
+
+
+    # afmri.plot_correlation_matrix(connectome_to_plot_mean, mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
     
 
     # Plot connectome for individual subject
@@ -855,7 +918,7 @@ def main():
     #what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
     #
     print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
-    precision_matrix, cov_matrix = afmri.build_sparse_invariance_matrix(seed_ts_subjects, label_map)
+    precision_matrix, cov_matrix = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
 
     #edge_threshold = '90%'# 0.6 #'60%'
     #msgtitle = "Precision matrix:%s, edge threshold=%s" % (cohort,edge_threshold) 
@@ -871,7 +934,7 @@ def main():
     #                                     #
     ####################################### 
 
-    print "Calculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type)
+    print "\n\nCalculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type)
     #granger_test_results = granger_causality_analysis(seed_ts_subjects[0], pre_params,label_map, order=10)
     #Need the average , check doesnt work
 
@@ -881,9 +944,9 @@ def main():
     #                                     #
     ####################################### 
 
-    print('Calling to group ICA...')
+    print('\n\nCalling to group ICA...\n\n\n\n')
     afmri.group_ICA(epi_file_list, pre_params, cohort)
 
-    print('Calling to group Ward clustering...')
+    print('\n\nCalling to group Ward clustering...\n\n\n\n')
     afmri.clustering_Ward(epi_file_list, pre_params, cohort)
     print('\n\n ----- END of test_fmri.py --- \n\n')
