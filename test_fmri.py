@@ -645,7 +645,7 @@ def main():
     #######################################
     seed_based = False
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[1]
+    mask_type = mask_type[2]
     if mask_type.find('DMN') > -1 :
       print('The Mask type is a Network not an Atlas...\n')
       mask_label= afmri.get_MNI_coordinates(mask_type)
@@ -827,7 +827,17 @@ def main():
       msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
       what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
       afmri.plot_correlation_matrix(coherency_mean_subjects, labels, msgtitle, what_to_plot)
+    
+    #######################################
+    # Build Group Covariance              # 
+    # and the Precision Matrix using      #
+    # using GroupSparseCovarianceCV      #
+    ####################################### 
 
+    #what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
+    #
+    print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
+    precision_matrix_sparseCV, cov_matrix_sparseCV = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
     #######################################
     # Plot connectome in time domian      #
     # mean for subjects and/or            #
@@ -844,6 +854,7 @@ def main():
     elif kind_of_correlation[idcor] is 'partial correlation':
       connectome_to_plot = pcorr_matrices
     what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
+    
     print('Transforming connectome_to_plot to ndarray \n')
     if type(connectome_to_plot) is list:
       connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
@@ -857,6 +868,9 @@ def main():
       print('Plotting the heat map and graph for MSDL Atlas .... \n')
       msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
       afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+      print "Plotting Sparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
     elif mask_type.find('DMN') > -1:
       print('Plotting the Mean subjects connectome for the DMN .... \n')
       plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
@@ -865,78 +879,30 @@ def main():
       print('Plotting the heat map and graph for the DMN .... \n')
       msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
       afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+      print "Plotting tSparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
     elif mask_type.find('maxprob') > -1:
       print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
       msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, kind_of_correlation[idcor])
       afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+      print "Plotting Sparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      pdb.set_trace()
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
       # Cant plot the connetome because I dont have the coords
 
-    
     pdb.set_trace()
     
-
-    # if mask_type is 'atlas': #msdl
-    #   coords = 
-    #   msdl_atlas_dataset = datasets.fetch_atlas_msdl()
-    #   atlas_imgs = image.iter_img(msdl_atlas_dataset.maps)
-    #   atlas_region_coords = [plotting.find_xyz_cut_coords(img) for img in atlas_imgs]
-    #   mcoords2plot = mcoords2plot
-    #   mlabels = msdl_atlas_dataset.labels
-    #   mlabels2plot = mlabels
-      
-    #   #mlabels = label_map.keys()
-    #   #mlabels2plot = mlabels
-    #   #mcoords2plot = label_map.values()
-    #   msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_label,kind_of_correlation[idcor])
-    # else: #DMN or other  
-    #   mlabels = mask_label.keys()
-    #   mlabels2plot = mask_label.keys()
-    #   mcoords2plot = mask_label.values()
-    #   msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mlabels,kind_of_correlation[idcor])
-    
-    
-
-
-
-
-    # afmri.plot_correlation_matrix(connectome_to_plot_mean, mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
-    
-
-    # Plot connectome for individual subject
-    # subject_id = 1
-    # print "Plotting the connectome matrices of Group={}, Subject={}\n".format(cohort, subject_id)
-    # connectome_to_plot_1s = connectome_to_plot[:,:,subject_id]
-    # msgtitle = "Group:{}, Subject_{}, Mask:{}, Connectome Type:{}".format(cohort, subject_id, mask_type, kind_of_correlation[idcor])
-    # afmri.plot_correlation_matrix(connectome_to_plot_1s ,mlabels2plot, mcoords2plot, msgtitle, what_to_plot)
-
-    #######################################
-    # Build Group Covariance              # 
-    # and the Precision Matrix using      #
-    # using GroupSparseCovarianceCV      #
-    ####################################### 
-
-    #what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-    #
-    print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
-    precision_matrix, cov_matrix = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
-
-    #edge_threshold = '90%'# 0.6 #'60%'
-    #msgtitle = "Precision matrix:%s, edge threshold=%s" % (cohort,edge_threshold) 
-    msgtitle = "Precision matrix: Cohort:%s" % (cohort) 
-    print "Plotting the Precision Matrix (inverse covariance) \n"
-    edge_threshold = .6
-    afmri.plot_correlation_matrix(precision_matrix ,mlabels2plot, mcoords2plot, msgtitle, what_to_plot, edge_threshold)
-    #afmri.plot_correlation_matrix(precision_matrix,label_map, msgtitle, what_to_plot, edge_threshold) #, edge_threshold)
 
     #######################################
     # Granger causality                   #
     # test and plot Granger connectome    #
     #                                     #
     ####################################### 
-
     print "\n\nCalculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type)
     #granger_test_results = granger_causality_analysis(seed_ts_subjects[0], pre_params,label_map, order=10)
-    #Need the average , check doesnt work
+    #YS: Need the average , check doesnt work
 
 
     #######################################
