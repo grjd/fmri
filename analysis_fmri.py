@@ -12,6 +12,8 @@ import pandas as pd
 import warnings
 import pdb
 from datetime import datetime
+from nilearn import plotting
+from nilearn import datasets
 import nitime.timeseries as ts
 from nilearn.image import mean_img, index_img, image
 from nilearn.plotting import (plot_roi, plot_epi,plot_prob_atlas, find_xyz_cut_coords, show,
@@ -361,6 +363,7 @@ def generate_mask(mask_type, preproc_parameters, epi_filename=None):
         #create masker for seed analysis 
         #template = load_mni152_template()
         if epi_filename is None:
+
             print "Generating mask for brain-wide using datasets.fetch_icbm152_2009()" 
             icbms = datasets.fetch_icbm152_2009()
             masker = NiftiMasker(mask_img=icbms.mask, detrend=preproc_parameters['detrend'],
@@ -537,7 +540,6 @@ def build_granger_matrix(time_series, preproc_parameters=None, label_map=None):
         sns.heatmap(np.transpose(corr_mats_yx), xticklabels=xticklabels, mask=mask, vmax=vmax, vmin=vmin, center=0,cmap="YlGnBu", robust="True", annot=annot,ax=ax2)
         sns.heatmap(np.transpose(corr_mats_diff), xticklabels=xticklabels, mask=mask, center=0,cmap="YlGnBu", robust="True", annot=annot,ax=ax3)
         
-    pdb.set_trace()
     return granger #[corr_mats_xy, corr_mats_yx, listoffreqs]
  
 def test_for_granger(time_series, preproc_parameters=None, label_map=None, order=10):
@@ -598,11 +600,223 @@ def test_for_granger(time_series, preproc_parameters=None, label_map=None, order
     print_test_results(Gres_all, pairtestedlist)
     return Gres_all    
 
+def build_seed_based_stat_map(epi_file_list, seed_ts_subjects, preproc_parameters_list, mask_name, seed_coords, seed_id, dirname, cohort):
+    """build_seed_based_stat_map build the statistical map using seed based correlation 
+    Args:epi_file_list (list), seed_ts_subjects (ndarray),preproc_parameters_list (dict), mask_name 'DMN', seed_coords [(0, -52, 18), ...], seed_id 0, dirname, cohort(str)
+    Output: statistiocal map"""
+    print "\n Computing the statistical map for seed based correlation and coherency \n" 
+    print ('\n The mask name is {} the seed_coords are {} and the seed_id is {} \n', mask_name, seed_coords, seed_id)
+
+    non_seed_corr_list = []
+    non_seed_coh_list = []
+    non_seed_masker_list = []
+    non_seed_ts_list = []
+    nb_of_subjects = len(epi_file_list)
+    #nb_of_subjects = seed_ts_subjects.shape[0]
+    #extract the time series for one roi , eg seed_id == 0 == PCC for seed_ts_subjects extracted for DMN 
+    #seed_id = 0 
+    for subject_id in range(0, nb_of_subjects):
+        print "\n \n Extracting time series for Subject %s / %s \n" % (subject_id, nb_of_subjects-1)
+        seed_ts = seed_ts_subjects[subject_id]
+        
+        #seed_ts = extract_seed_ts(seed_ts, seed_id)
+        #seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
+        #return seed_ts
+        print(' Calling to extract_non_seed_mask_and_ts ....\n')
+        nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_file_list[subject_id], preproc_parameters_list) 
+        print(' nonseed_masker and nonseed_ts obtained. Calling to calculate_and_plot_seed_based_correlation ...\n')    
+        nonseed_corr_fisher = calculate_and_plot_seed_based_correlation(seed_ts, nonseed_masker, nonseed_ts, preproc_parameters_list, seed_coords, seed_id, dirname, cohort, subject_id)
+        print(' Calling to calculate_and_plot_seed_based_coherence ...\n')    
+        Cxy_targets, f, Cxymean = calculate_and_plot_seed_based_coherence(seed_ts, nonseed_masker, nonseed_ts, preproc_parameters_list, seed_coords, seed_id, dirname, cohort, subject_id)
+        # building the list with the stat map for each subject
+        #non_seed_masker_list.append(nonseed_masker)
+        non_seed_corr_list.append(nonseed_corr_fisher)
+        non_seed_coh_list.append(Cxymean)
+        non_seed_ts_list.append(nonseed_ts)
+    #calculate the mean of the seed based across individuals
+    #mean in absolute value arr_fisher_corr = np.abs(np.array(non_seed_corr_list))
+    arr_fisher_corr = np.array(non_seed_corr_list).reshape(seed_ts_subjects.shape[0], nonseed_ts.shape[1])
+    arr_coherence = np.array(non_seed_coh_list).reshape(seed_ts_subjects.shape[0], nonseed_ts.shape[1])
+    print('Saving the statistical maps....\n')
+
+    statmaps_dir = os.path.join(dirname,'matrices')
+    if not os.path.exists(statmaps_dir):
+        print('Creating matrices directory {}', statmaps_dir)
+        os.makedirs(statmaps_dir)
+    statmaps_corr = os.path.join(statmaps_dir,'conv_arr_fisher_corr')    
+    np.save(statmaps_corr, arr_fisher_corr)
+    statmaps_coh = os.path.join(statmaps_dir,'conv_arr_coherence') 
+    #conv_params_plot= [wisemean_fisher, seed_coords, dirname, threshold, subject_id, cohort]
+    np.save(statmaps_coh, arr_coherence)
+
+    print(' Ploting the mean of the stat maps....\n')
+    #print "Wise mean of the Fisher seed correlation across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_fisher_corr.min(), arr_fisher_corr.max(), arr_fisher_corr.mean(), arr_fisher_corr.std())
+    wisemean_fisher = arr_fisher_corr.mean(axis=0)
+    wisemean_coh = arr_coherence.mean(axis=0)
+    voxels = wisemean_fisher.shape[0]
+    wisemean_fisher = wisemean_fisher.reshape(voxels,1)
+    wisemean_coh = wisemean_coh.reshape(voxels,1)
+    subject_id='Mean:'
+    # save in file
+    #np.save('/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/figures/conv_arr_fisher_corr', arr_fisher_corr)
+    #ttest_groups(stat_map_g1, stat_map_g2)
+    threshold = 0.6
+    plot_stat_map_in_MNI_space(wisemean_fisher, nonseed_masker, seed_coords[seed_id], dirname, threshold, 'Mean', cohort, 'Correlation')
+    #print "Wise mean of the Seed Coherence (Welch method) across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_coherence.min(), arr_coherence.max(), arr_coherence.mean(), arr_coherence.std())
+    plot_stat_map_in_MNI_space(wisemean_coh, nonseed_masker, seed_coords[seed_id], dirname, threshold, 'Mean', cohort, 'Coherence')
+    return arr_fisher_corr, arr_coherence, nonseed_masker
+
+#### moved from test #####
+### correlation
+def calculate_and_plot_seed_based_correlation(time_series, nonseed_masker, nonseed_ts, preproc_parameters_list, seed_coords, seed_id, dirname, cohort, subject_id):
+    ''' calculate_seed_based_correlation and plot the contrast in MNI for one subject'''
+    print "Calculating seed based correlation: one Seed vs. Entire Brain"
+    # seed_ts dimension is timepoints x nb of seeds (120x1)
+    seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
+    # generate brain-wide masker from fMRI epi_file[subjectr_id]
+    #nonseed_masker = afmri.generate_mask('brain-wide', [], preproc_parameters_list)
+    #nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file_list) 
+    #nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file) 
+    # compute the seed based correlation between seed and nonseed time series per each subject
+    [seed_corr_fisher,seed_corr]  = build_seed_based_correlation(seed_ts, nonseed_ts, preproc_parameters_list)
+    # threshold is considered in abs value
+    threshold = np.mean(seed_corr) + np.std(seed_corr)
+    threshold = np.mean(seed_corr_fisher)
+    # plot via inverse transform the correlation. We can plot r ot Fisher transform
+    plot_stat_map_in_MNI_space(seed_corr_fisher, nonseed_masker, seed_coords[seed_id], dirname, threshold, subject_id, cohort, 'Correlation')
+    return seed_corr_fisher
+
+
+
+def extract_non_seed_mask_and_ts(epi_file, preproc_parameters_list):    
+    ''' extract_non_seed_mask_and_ts '''
+    nonseed_masker = generate_mask('brain-wide', preproc_parameters_list, epi_file)
+    nonseed_ts = extract_timeseries_from_mask(nonseed_masker, epi_file) 
+    return nonseed_masker, nonseed_ts
+
+## coherence 
+def calculate_and_plot_seed_based_coherence(time_series, nonseed_masker, nonseed_ts, preproc_parameters_list, seed_coords, seed_id, dirname, cohort, subject_id):
+    ''' calculate_and_plot_seed_based_coherence '''
+    import pprint
+    print "Calculting seed based coherence: one Seed vs. Entire Brain \n"
+    seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1)
+    freqband = [preproc_parameters_list['high_pass'], preproc_parameters_list['low_pass']]
+    Cxy_targets, f, maskfreqs, Cxymean = calculate_seed_based_coherence(seed_ts, nonseed_ts, preproc_parameters_list)
+    plot_coherence_periodogram = False
+    if plot_coherence_periodogram is True:
+        plot_coherence_with_seed(Cxy_targets, f, maskfreqs)
+    #afmri.build_seed_based_coherence(seed_ts, nonseed_ts, preproc_parameters_list)
+    threshold = 0.6
+    # plot via inverse trnasform the correlation
+    #display = plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords[seed_id], dirname, threshold, subject_id, cohort)
+    display = plot_stat_map_in_MNI_space(Cxymean, nonseed_masker, seed_coords[seed_id], dirname, threshold, subject_id, cohort, 'Coherence')
+    return Cxy_targets, f, Cxymean
+    
+def calculate_seed_based_coherence(seed_ts, nonseed_ts, preproc_parameters_list):  
+    ''' calculate_seed_based_coherence '''
+    nb_voxels = nonseed_ts.shape[1]
+    #targetseed1 = 0
+    #targetseed2 = nb_voxels     
+    #if all_targets == False:
+    #    targetseed1 = 10345
+    #    targetseed2 = 10501
+    #targetseeds = targetseed2 - targetseed1
+        
+    nonseed_forcoh = nonseed_ts.T[0:nb_voxels,:].reshape(nb_voxels,seed_ts.shape[0])
+    # Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals seed and target using Welch’s method.
+    Cxy_targets = []
+    Cxymean = []
+    passed_once = False
+    freqband = [preproc_parameters_list['high_pass'], preproc_parameters_list['low_pass']]
+    for targetix in range(0,nb_voxels):
+        f, Cxy = calculate_coherence(seed_ts.T, nonseed_forcoh[targetix], preproc_parameters_list)
+        # we only need it once
+        if passed_once is False:
+            maskfreqs = (f >= freqband[0]) & (f <= freqband[1])
+            passed_once = True
+        Cxy = Cxy[0][maskfreqs]
+        print "Mean Coherence (CPD) in range {}-{} Hz. between seed and target:{} = {}".format(freqband[0],freqband[1], targetix, np.mean(Cxy))
+        Cxy_targets.append(Cxy)
+        Cxymean.append(np.mean(Cxy))
+    Cxymean = np.asarray(Cxymean)
+    Cxymean = Cxymean.reshape(nb_voxels,1)
+    return Cxy_targets, f, maskfreqs, Cxymean
+
+def plot_coherence_with_seed(Cxy, f, maskfreqs): 
+    ''' plot_coherence_voxels
+    Input: Cxy list of coherence between the seed and the target
+    f: frequency list
+    maskfreqs: subrange of f of frequencies''' 
+    print "Plotting the coherence between the seed and the target, total number of plots={}".format(len(Cxy))
+    for i in range(0, len(Cxy)):
+        plt.semilogy(f[maskfreqs], Cxy[i])
+    plt.xlabel('frequency [Hz]')
+    plt.ylabel('Coherence')    
+    msgtitle = "Coherence seed-target, freq band=[%s, %s]" % (freqband[0],freqband[1])      
+    plt.title(msgtitle)      
+    
+def load_time_series(seed_path, nonseed_path):
+    ''' load_time_series load array saved repviously in file with time series seed and non seed '''
+    seed_ts = np.load(seed_path)
+    print "Seed ts dimensions={} X {}".format(seed_ts.shape[0], seed_ts.shape[1])
+    nonseed_ts = np.load(nonseed_path)
+    print "NonSeed ts dimensions={} X {}".format(nonseed_ts.shape[0], nonseed_ts.shape[1])    
+    return seed_ts,nonseed_ts
+
+
+#### moved from test #####
+
+def ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, dirname, type_stat_map=None, dim_coords=None):  
+    """ttest_stat_map_groups ttest between two statistical maps 
+    Args:stat_map_g1, stat_map_g2. ndarray (Subjects, Vocels) 
+    Output: 
+    """
+    from scipy.stats import ttest_ind
+    from statsmodels.sandbox.stats.multicomp import multipletests
+    if dim_coords is None:
+        dim_coords = (0, -55, 29)
+    if type_stat_map is None:
+        type_stat_map = 'Correlation'  #'Coherence'
+    
+    ttest_stat_map_groups, pval_stat_map_groups = np.zeros(stat_map_g1.shape[1]), np.zeros(stat_map_g1.shape[1])
+    df_stat_map_g1 = pd.DataFrame(stat_map_g1)
+    df_stat_map_g2 = pd.DataFrame(stat_map_g2)
+
+    for v in range(0, stat_map_g1.shape[1]):
+        ttest_stat_map_groups[v], pval_stat_map_groups[v] = ttest_ind(df_stat_map_g1[v], df_stat_map_g2[v])
+        print('{}/{}, ttest={}, pval= {}',v, stat_map_g1.shape[1], ttest_stat_map_groups[v], pval_stat_map_groups[v])
+
+    print('Ploting the ttest stat_map difference between 2 groups:\n\n')
+    threshold = np.mean(ttest_stat_map_groups) + np.std(ttest_stat_map_groups)
+    plot_stat_map_in_MNI_space(ttest_stat_map_groups, nonseed_masker, dim_coords, dirname, threshold, 'ttest', '2G', type_stat_map)
+    threshold = 0.95
+    print('Ploting the pvalue stat_map difference between 2 groups:\n\n')
+    plot_stat_map_in_MNI_space(1-pval_stat_map_groups, nonseed_masker, dim_coords, dirname, threshold, 'pvalue', '2G', type_stat_map)
+
+    print('Correct for Multiple comparisons \n')  
+    for alpha in [0.01, 0.05, 0.1]:
+        for method in ['b', 's', 'sh', 'hs', 'h', 'hommel', 'fdr_i', 'fdr_n', 'fdr_tsbky', 'fdr_tsbh', 'fdr_gbs']:
+            reject, pvalscorr = multipletests(pval_stat_map_groups, alpha=alpha, method=method)[:2]
+            msg = 'case %s %3.2f rejected:%d\npval_raw=%r\npvalscorr=%r' % (method, alpha, reject.sum(), pval_stat_map_groups, pvalscorr)
+            filenamemsg = 'pval_mult:'+ method
+            plot_stat_map_in_MNI_space(1-pval_stat_map_groups, nonseed_masker, dim_coords, dirname, 1-alpha, filenamemsg, '2G', type_stat_map)
+      
+    return ttest_stat_map_groups, pval_stat_map_groups, pvalscorr
+
+  # tt_seed_based_correlation_img = nonseed_masker.inverse_transform(ttest_stat_map_groups)
+  # display = plotting.plot_stat_map(tt_seed_based_correlation_img, cut_coords=dim_coords, title= 'ttest', dim='auto', display_mode='ortho')
+
+  # print('Ploting the pval stat_map difference between 2 groups:\n\n')
+  # pv_seed_based_correlation_img = nonseed_masker.inverse_transform(1-pval_stat_map_groups)
+  # #b[np.where(a == True)]
+  # display = plotting.plot_stat_map(pv_seed_based_correlation_img, threshold = 0.95, title= 'pval', cut_coords= dim_coords, dim='auto', display_mode='ortho')
+  # return ttest_stat_map_groups, pval_stat_map_groups
+
 def build_sparse_invariance_matrix(time_series, label_map=None, cohort=None):
     '''calculates the sparse covariance and precision matrices matrix for a GROUP of subjects
     Input: time_series ndarray subjects x time points x voxels and plots the connectome
     label_map: dict keys and values'''
-    from nilearn import plotting
+
     from nilearn.connectome import GroupSparseCovarianceCV
     
     print('Calling to nilearn.connectome.GroupSparseCovarianceCV \
@@ -650,64 +864,66 @@ def build_seed_based_correlation(seed_ts, nonseed_ts, preproc_parameters):
     " max =", seed_based_correlations_fisher_z.max()                                                                                             
     return seed_based_correlations_fisher_z,seed_based_correlations
 
-def plot_seed_based_correlation_MNI_space(seed_co, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
+def plot_stat_map_in_MNI_space(seed_co, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None, type_statmap=None):
     '''plot_seed_based_correlation plots the seed based correlation in a brain in MNI space, it does an inverse transform'''
-    from nilearn import plotting
-    from nilearn import datasets
-    from nilearn.input_data import NiftiMasker 
 
+    from nilearn.input_data import NiftiMasker 
+    if type_statmap is None:
+        type_statmap = 'Correlation'
     #filename ='seedcorrelation.nii.gz'
-    filename = "seedcorrelation_subject_{}.nii.gz".format(subject_id)
-    msgtitle_prefix = 'Correlation'
+
+    filename = "seed{}_subject_{}.nii.gz".format(type_statmap, subject_id)
+    msgtitle_prefix = type_statmap
     seed_based_correlation_img = nonseed_masker.inverse_transform(seed_co.T)
         
-    imageresult = os.path.join(dirname, filename)
-    seed_based_correlation_img.to_filename(imageresult)
+    niiresult = os.path.join(dirname, filename)
+    seed_based_correlation_img.to_filename(niiresult)
     
     #pcc_coords = [(0, -52, 18)]
     #MNI152Template = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz'
     #remove out-of brain functional connectivity using a mask
     icbms = datasets.fetch_icbm152_2009()
     masker_mni = NiftiMasker(mask_img=icbms.mask)
-    data = masker_mni.fit_transform(imageresult)
+    data = masker_mni.fit_transform(niiresult)
     masked_sbc_z_img = masker_mni.inverse_transform(data)
-    msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
-    msgoutputfile = 'corr_map_' + 't:'+ str(threshold)[:4] + 's:'+ str(subject_id) + '.' + 'png'
-    print('Saving correlation map at:{}',msgoutputfile)
-
-    msgoutputfile = 'figures/' + msgoutputfile
-    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= msgoutputfile, \
+    msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, str(threshold)[:5])
+    #threshold without . to dont confuse with .png extension
+    msgoutputfile = 'stat_map_' + type_statmap + '_thr0'+ str(threshold)[2:5] + '_s:' + str(subject_id) + '.png'
+    print('Saving stat map at:{}', msgoutputfile)
+    pngimage = os.path.join(dirname, 'figures/', msgoutputfile)
+    #msgoutputfile = 'figures/' + msgoutputfile
+    #pdb.set_trace()
+    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= pngimage, \
                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
                                          
-def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
-    ''' plot_seed_based_coherence in MNI space using an inverse transform
-    Input: Cxymean the coherence between all voxel pairs, type 'numpy.ndarray'
-    nonseed_masker: Mask of the non seed, the entire brain
-    seed_coords: coordinates of the seed,tuple, typically the PCC (0, -52, 18),
-    dirname path where the image is saved
-    threshold: threshold to slect relevant coherence
-    subject_id and cohort strings for the masgtitle of the plot'''
-    from nilearn import plotting
-    from nilearn import datasets
-    from nilearn.input_data import NiftiMasker 
-    filename = "seedcoherence_subjec_{}.nii.gz".format(subject_id)
-    msgtitle_prefix = 'Coherence'
-    seed_based_correlation_img = nonseed_masker.inverse_transform(Cxymean.T)
-    imageresult = os.path.join(dirname, filename)
-    seed_based_correlation_img.to_filename(imageresult)
-    #pcc_coords = [(0, -52, 18)]
-    #MNI152Template = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz'
-    #remove out-of brain functional connectivity using a mask
-    icbms = datasets.fetch_icbm152_2009()
-    masker_mni = NiftiMasker(mask_img=icbms.mask)
-    data = masker_mni.fit_transform(imageresult)
-    masked_sbc_z_img = masker_mni.inverse_transform(data)
-    msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
-    msgoutputfile = 'coh_map_' + 't:'+str(threshold)[:4] + 's_'+ str(subject_id) + '.png'
-    msgoutputfile = 'figures/' + msgoutputfile
-    display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= msgoutputfile, \
-                                         threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
-    return display
+# def plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, dirname, threshold, subject_id=None, cohort=None):
+#     ''' plot_seed_based_coherence in MNI space using an inverse transform
+#     Input: Cxymean the coherence between all voxel pairs, type 'numpy.ndarray'
+#     nonseed_masker: Mask of the non seed, the entire brain
+#     seed_coords: coordinates of the seed,tuple, typically the PCC (0, -52, 18),
+#     dirname path where the image is saved
+#     threshold: threshold to slect relevant coherence
+#     subject_id and cohort strings for the masgtitle of the plot'''
+
+#     from nilearn.input_data import NiftiMasker 
+#     filename = "seedcoherence_subject_{}.nii.gz".format(subject_id)
+#     msgtitle_prefix = 'Coherence'
+#     seed_based_correlation_img = nonseed_masker.inverse_transform(Cxymean.T)
+#     imageresult = os.path.join(dirname, filename)
+#     seed_based_correlation_img.to_filename(imageresult)
+#     #pcc_coords = [(0, -52, 18)]
+#     #MNI152Template = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz'
+#     #remove out-of brain functional connectivity using a mask
+#     icbms = datasets.fetch_icbm152_2009()
+#     masker_mni = NiftiMasker(mask_img=icbms.mask)
+#     data = masker_mni.fit_transform(imageresult)
+#     masked_sbc_z_img = masker_mni.inverse_transform(data)
+#     msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
+#     msgoutputfile = 'coh_map_' + 't:'+str(threshold)[:4] + 's_'+ str(subject_id) + '.png'
+#     msgoutputfile = 'figures/' + msgoutputfile
+#     display = plotting.plot_stat_map(masked_sbc_z_img , cut_coords=seed_coords, output_file= msgoutputfile, \
+#                                          threshold=threshold, title= msgtitle, dim='auto', display_mode='ortho')
+#     return display
     
 def build_connectome(time_series, kind_of_correlation):
     ''' build_connectome: computes different kinds of functional connectivity matrices 
@@ -770,7 +986,7 @@ def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None,
     Input: ONE correlation matrix
     label_map : dict with rois (label_map.keys()) and values (label_map.values())
     masgtitle'''
-    from nilearn import plotting
+
     from nitime.viz import drawmatrix_channels, drawgraph_channels
     # if what_to_plot is not specified define what to plot
     if what_to_plot is None:
@@ -892,10 +1108,125 @@ def save_plot(ax, msgtitle):
 def plot_nii(nifti=None):
     """ plot nifti image from the path
     """
-    from nilearn import plotting
     if nifti is None:
         nifti = 'seedcorrelation_subject_Mean.nii.gz'
     plotting.plot_stat_map(tmap_filename)
     # to plot 4D image for example ICa image
     ica_nii = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/CanICA_resting_state.nii.gz'
     plotting.plot_prob_atlas(ica_nii)
+
+def calculate_ttest_two_groups(stat_map1, stat_map2):
+    """ calculate_ttest_two_groups"""
+    nb_subjects1, nb_subjects2 = len(stat_map1), len(stat_map1)
+
+
+
+def calculate_seed_based_correlation_destriaux(nonseed_ts, nonseed_masker):
+    """ calculate_seed_based_connectivity NOT WORKING!!!! The mesh has less nodes than the stat map. ??!!"""
+    # Destrieux parcellation for left hemisphere in fsaverage5 space
+    #type(destrieux_atlas) is sklearn.utils.Bunch
+    from scipy import stats
+    from nilearn import surface
+    from nilearn.input_data import NiftiMasker
+    # Fsaverage5 surface template contains file names pointing to the file locations
+    destrieux_atlas = datasets.fetch_atlas_surf_destrieux()
+    print('destrieux_atlas description: {} \n', destrieux_atlas.description)
+    print('destrieux_atlas labels: {} \n', destrieux_atlas.labels)
+    parcellation = destrieux_atlas['map_left']
+    labels = destrieux_atlas['labels']
+    fsaverage = datasets.fetch_surf_fsaverage5()
+    print('Fsaverage5 pial surface of left hemisphere is at: %s' % fsaverage['pial_left'])
+    print('Fsaverage5 inflated surface of left hemisphere is at: %s' % fsaverage['infl_left'])
+    print('Fsaverage5 sulcal depth map of left hemisphere is at: %s' % fsaverage['sulc_left'])
+
+    timeseries = surface.load_surf_data(nonseed_ts)
+    timeseries = nonseed_ts
+    # Extract seed region via label
+    pcc_region = b'G_cingul-Post-dorsal'
+    pcc_labels = np.where(parcellation == labels.index(pcc_region))[0]
+    # Extract time series from seed region
+    seed_timeseries = np.mean(timeseries[pcc_labels], axis=0)
+    stat_map, stat_map_pearson, stat_map_spearman = np.zeros(nonseed_ts.shape[0]), np.zeros(nonseed_ts.shape[0]), np.zeros(nonseed_ts.shape[0]) 
+    for i in range(timeseries.shape[0]):
+        stat_map_pearson[i] = stats.pearsonr(seed_timeseries, timeseries[i])[0]
+        stat_map_spearman[i] = stats.spearmanr(seed_timeseries, timeseries[i])[0]
+        print('Seed {} / {} , Pearson r = {}, Spearman r : {}',i, timeseries.shape[0], stat_map_pearson[i],stat_map_spearman[i] )
+    stat_map = stat_map_pearson
+    #stat_map = stat_map_spearman
+    # Re-mask previously masked nodes (medial wall)
+    
+    stat_map[np.where(np.mean(timeseries, axis=1) == 0)] = 0
+    seed_based_correlation_img = nonseed_masker.inverse_transform(stat_map)
+    display = plotting.plot_stat_map(seed_based_correlation_img ,cut_coords=(0, -55, 29), threshold=0.6, title= 'PCC correlation', dim='auto', display_mode='ortho')
+    return stat_map
+
+    #plotting.plot_surf_stat_map(fsaverage['infl_left'],stat_map=stat_map)
+
+    # icbms = datasets.fetch_icbm152_2009()
+    # masker_mni = NiftiMasker(mask_img=icbms.mask)
+    # data = masker_mni.fit_transform(seed_based_correlation_img)
+    # masked_sbc_z_img = masker_mni.inverse_transform(data)
+    # msgtitle = "Seed_{}_{}_G:{}_S:{}_thr:{}".format(msgtitle_prefix, seed_coords, cohort, subject_id, threshold)
+
+    # msgoutputfile = 'figures/' + msgoutputfile
+    # display = plotting.plot_stat_map(masked_sbc_z_img ,threshold=0.5, title= 'msgtitle', dim='auto', display_mode='ortho')
+
+
+    # # tstatistic, pvalue = stats.ttest_rel(rvs1,rvs2)
+    # # plotting, thresholding, or using custom colormaps
+    # plotting.plot_surf_stat_map(fsaverage['infl_left'], stat_map=stat_map,
+    #                         hemi='left', bg_map=fsaverage['sulc_left'],
+    #                         bg_on_data=True, threshold=.6,
+    #                         output_file='plot_surf_stat_map.png')
+    
+
+
+def plot_surface_of_3D_stat_map(localizer_tmap):
+    """ plot_surface_of_3D_stat_map plots nifti file image 
+    Args:localizer_tmap str containing the path of a 3D .nii image which is the result of a ttest"""
+
+    from nilearn import surface
+    from nilearn.image import threshold_img
+    from nilearn.regions import connected_regions
+    #from nilearn import plotting
+    #from nilearn import datasets
+    fsaverage = datasets.fetch_surf_fsaverage5()
+    texture = surface.vol_to_surf(localizer_tmap, fsaverage.pial_right)
+    threshold = 0.5
+    msgtitle ='thr:'+ str(threshold)
+    
+    plotting.plot_glass_brain(localizer_tmap, display_mode='r', plot_abs=False, title=msgtitle, threshold=threshold, colorbar=True)
+    #plot 3D object, can rotate !
+    plotting.plot_stat_map(localizer_tmap, display_mode='y', threshold=threshold, cut_coords=range(-50, 51, 10), title=msgtitle)
+    msgtitle = 'Surface right hemisphere'
+    plotting.plot_surf_stat_map(fsaverage.infl_right, texture, hemi='right', title=msgtitle,threshold=threshold, bg_map=fsaverage.sulc_right,cmap='cold_hot')
+   
+    plotting.plot_surf_stat_map(fsaverage['pial_left'], texture, hemi='left', view='medial', bg_map=fsaverage['sulc_left'], bg_on_data=True,cmap='Spectral', threshold=.3,title='Threshold and colormap')
+    
+    #
+    localizer_tmap = '/Users/jaime/Downloads/testmni/seedCorrelation_subject_Mean.nii.gz'
+    threshold_percentile_img = threshold_img(localizer_tmap, threshold='99%')
+    threshold_value_img = threshold_img(localizer_tmap, threshold=0.9)
+    # Two types of strategies can be used from this threshold function
+    # Type 1: strategy used will be based on scoreatpercentile
+    plotting.plot_stat_map(threshold_percentile_img, display_mode='y', cut_coords=10,title='Threshold image with string percentile', colorbar=True)
+    # Showing intensity threshold image
+    plotting.plot_stat_map(threshold_value_img, display_mode='z', cut_coords=5, title='Threshold image with intensity value', colorbar=False)
+    #Extracting the regions by importing connected regions function
+    regions_percentile_img, index = connected_regions(threshold_percentile_img,min_region_size=100)
+
+    regions_value_img, index = connected_regions(threshold_value_img,min_region_size=100)
+    title = ("ROIs using percentile thresholding. "
+         "\n Each ROI in same color is an extracted region")
+    plotting.plot_prob_atlas(regions_percentile_img, bg_img=localizer_tmap,
+                         view_type='contours', display_mode='z',
+                         cut_coords=5, title=title)
+    title = ("ROIs using image intensity thresholding. "
+         "\n Each ROI in same color is an extracted region")
+    plotting.plot_prob_atlas(regions_value_img, bg_img=localizer_tmap,
+                         view_type='contours', display_mode='z',
+                         cut_coords=5, title=title)
+
+
+
+

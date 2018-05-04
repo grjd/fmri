@@ -13,7 +13,11 @@ import sys
 import numpy as np
 import pdb
 import matplotlib.pyplot as plt
+import pandas as pd
+from random import randint
+
 import analysis_fmri as afmri
+from scipy.stats import ttest_ind
 from collections import OrderedDict
 from nilearn import plotting
 from nilearn import datasets
@@ -393,95 +397,8 @@ def extract_seed_ts(time_series,seed_id):
     seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
     return seed_ts
 
-def extract_non_seed_mask_and_ts(epi_file, preproc_parameters_list):    
-    ''' extract_non_seed_mask_and_ts '''
-    nonseed_masker = afmri.generate_mask('brain-wide', preproc_parameters_list, epi_file)
-    nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file) 
-    return nonseed_masker, nonseed_ts
-    
-def calculate_and_plot_seed_based_correlation(time_series, nonseed_masker, nonseed_ts, mask_type,mask_label,preproc_parameters_list,epi_file,seed_coords,seed_id, dirname, cohort, subject_id):
-    ''' calculate_seed_based_correlation and plot the contrast in MNI for one subject'''
-    print "Calculating seed based correlation: one Seed vs. Entire Brain"
-    # seed_ts dimension is timepints x nb of seeds (120x1)
-    seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
-    # generate brain-wide masker from fMRI epi_file[subjectr_id]
-    #nonseed_masker = afmri.generate_mask('brain-wide', [], preproc_parameters_list)
-    #nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file_list) 
-    #nonseed_ts = afmri.extract_timeseries_from_mask(nonseed_masker, epi_file) 
-    # compute the seed based correlation between seed and nonseed time series per each subject
-    [seed_corr_fisher,seed_corr]  = afmri.build_seed_based_correlation(seed_ts, nonseed_ts, preproc_parameters_list)
-    # threshold is considered in abs value
-    threshold = np.mean(seed_corr) + np.std(seed_corr)
-    threshold = np.mean(seed_corr_fisher)
-    # plot via inverse transform the correlation. We can plot r ot Fisher transform
-    afmri.plot_seed_based_correlation_MNI_space(seed_corr_fisher, nonseed_masker, seed_coords, dirname, threshold, subject_id, cohort)
-    return [seed_corr_fisher,nonseed_masker,nonseed_ts]
 
-def calculate_and_plot_seed_based_coherence(time_series, nonseed_masker, nonseed_ts, mask_type, mask_label,preproc_parameters_list,epi_file,seed_coords,seed_id, dirname, cohort, freqband, subject_id, typeofcorr=None):
-    ''' calculate_and_plot_seed_based_coherence '''
-    import pprint
-    print "Calculting seed based coherence: one Seed vs. Entire Brain"
-    seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
-    Cxy_targets, f, maskfreqs, Cxymean = calculate_seed_based_coherence(seed_ts, nonseed_ts, freqband, preproc_parameters_list)
-    plot_coherence_periodogram = False
-    if plot_coherence_periodogram is True:
-        plot_coherence_with_seed(Cxy_targets, f, maskfreqs)
-    #afmri.build_seed_based_coherence(seed_ts, nonseed_ts, preproc_parameters_list)
-    threshold = 0.6
-    # plot via inverse trnasform the correlation
-    display = afmri.plot_seed_based_coherence_MNI_space(Cxymean, nonseed_masker, seed_coords, dirname, threshold, subject_id, cohort)
-    return Cxy_targets, f, Cxymean
     
-    
-def calculate_seed_based_coherence(seed_ts, nonseed_ts, freqband, preproc_parameters_list):  
-    ''' calculate_seed_based_coherence '''
-    nb_voxels = nonseed_ts.shape[1]
-    #targetseed1 = 0
-    #targetseed2 = nb_voxels     
-    #if all_targets == False:
-    #    targetseed1 = 10345
-    #    targetseed2 = 10501
-    #targetseeds = targetseed2 - targetseed1
-        
-    nonseed_forcoh = nonseed_ts.T[0:nb_voxels,:].reshape(nb_voxels,seed_ts.shape[0])
-    # Estimate the magnitude squared coherence estimate, Cxy, of discrete-time signals seed and target using Welch’s method.
-    Cxy_targets = []
-    Cxymean = []
-    passed_once = False
-    for targetix in range(0,nb_voxels):
-        f, Cxy = afmri.calculate_coherence(seed_ts.T, nonseed_forcoh[targetix],preproc_parameters_list)
-        # we only need it once
-        if passed_once is False:
-            maskfreqs = (f >= freqband[0]) & (f <= freqband[1])
-            passed_once = True
-        Cxy = Cxy[0][maskfreqs]
-        print "Mean Coherence (CPD) in range {}-{} Hz. between seed and target:{} = {}".format(freqband[0],freqband[1], targetix, np.mean(Cxy))
-        Cxy_targets.append(Cxy)
-        Cxymean.append(np.mean(Cxy))
-    Cxymean = np.asarray(Cxymean)
-    Cxymean = Cxymean.reshape(nb_voxels,1)
-    return Cxy_targets, f, maskfreqs, Cxymean
-
-def plot_coherence_with_seed(Cxy, f, maskfreqs): 
-    ''' plot_coherence_voxels
-    Input: Cxy list of coherence between the seed and the target
-    f: frequency list
-    maskfreqs: subrange of f of frequencies''' 
-    print "Plotting the coherence between the seed and the target, total number of plots={}".format(len(Cxy))
-    for i in range(0, len(Cxy)):
-        plt.semilogy(f[maskfreqs], Cxy[i])
-    plt.xlabel('frequency [Hz]')
-    plt.ylabel('Coherence')    
-    msgtitle = "Coherence seed-target, freq band=[%s, %s]" % (freqband[0],freqband[1])      
-    plt.title(msgtitle)      
-    
-def load_time_series(seed_path, nonseed_path):
-    ''' load_time_series load array saved repviously in file with time series seed and non seed '''
-    seed_ts = np.load(seed_path)
-    print "Seed ts dimensions={} X {}".format(seed_ts.shape[0], seed_ts.shape[1])
-    nonseed_ts = np.load(nonseed_path)
-    print "NonSeed ts dimensions={} X {}".format(nonseed_ts.shape[0], nonseed_ts.shape[1])    
-    return seed_ts,nonseed_ts
 
 def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None): 
     """ prepare for extracting the timer serioes"""
@@ -516,35 +433,26 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
         print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
     return seed_ts_subjects, plotted_ts
 
-# def prepare_mask_creation(preproc_parameters_list, seed_based, mask_type):
-#     """ prepare_mask_creation : returns masker to be callled to extract time series
-#     Args: preproc_parameters_list
-#     Output: masker, mask_label, label_map, seed_id, seed_coords, mask_type[idx]"""
-#     # seed mask. for entire-brain seed based analysis the mask and the nonseed time series is generated after
 
-#     if mask_type.find('atlas-cort-maxprob-thr25-2mm') > -1:
-#       mask_label = 'cort-maxprob-thr25-2mm'
-#       label_map = afmri.get_atlas_labels(mask_label)
-#     elif mask_type.find('atlas-msdl') > -1:
+# def compute_seed_based_ttest_groups(epi_list1, epi_list2, pre_params):
+#   nb_of_subjects1, nb_of_subjects2 = len(epi_list1), len(epi_list2)
+#   list_stat_map1,  list_stat_map2 = [], []
+#   for subject_id in range(0, nb_of_subjects1):
+#     nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_list1[subject_id], pre_params)
+#     stat_map = afmri.calculate_seed_based_correlation_destriaux(nonseed_ts.T, nonseed_masker)
+#     #stat_map = calculate_and_plot_seed_based_correlation(time_series, nonseed_masker, nonseed_ts, mask_type, mask_label, preproc_parameters_list, epi_file, seed_coords, seed_id, dirname, cohort, subject_id):
+#     list_stat_map1.append(stat_map)
+#   print('Calculating stat_map for Group 1, subject:{} \n\n', subject_id)
 
-#     elif (mask_type == 'DMN') or (mask_type == 'AN') or (mask_type == 'SN'):
-#         mask_label= afmri.get_MNI_coordinates(mask_type)   
-#         label_map = [mask_label.keys(), mask_label.values()]
-#         #label_map = [afmri.get_MNI_coordinates(mask_label.keys(), afmri.get_MNI_coordinates(mask_type[idx]).values()]   
-#         #coords_map = afmri.get_MNI_coordinates(mask_type[idx]).values()  
-
-#     #mask for the seed, the mask and time series for the non seed is only created if we do seed based analysis
-#     print('Calling to afmri.generate_mask {} {} {} \n',mask_type, mask_label, preproc_parameters_list)
-#     masker = afmri.generate_mask(mask_type, preproc_parameters_list)
-#     seed_id = None
-#     seed_coords = None
-#     if seed_based is True:
-#       #PCC in DMN
-#       seed_id = 0
-#       seed_coords = label_map[1][seed_id]
-#       print "The masker parameters are:%s\n" % (masker.get_params())
-#       print "The seed = {} and its coordinates ={} \n".format(seed_id, seed_coords)
-#     return masker, mask_label, label_map, seed_id, seed_coords, mask_type
+#   for subject_id in range(0, nb_of_subjects2):
+#     nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_list2[subject_id], pre_params)
+#     stat_map = afmri.calculate_seed_based_correlation_destriaux(nonseed_ts.T, nonseed_masker)
+#     list_stat_map2.append(stat_map)
+#   print('Calculating stat_map for Group 2, subject:{} \n\n', subject_id)
+#   #ttest 
+#   stat_map_g1 = pd.DataFrame(list_stat_map1)
+#   stat_map_g2 = pd.DataFrame(list_stat_map2)
+#   return stat_map1, stat_map2
 
 
 def plot_graph_from_atlas(corr_matrix, time_series, atlas):
@@ -561,11 +469,11 @@ def main():
     pre_params = preproc_parameters_list()
     freqband = [0.01, 0.1]    
     freqband = [pre_params['high_pass'], pre_params['low_pass']]
+    #nonseed_mask = afmri.generate_mask('brain-wide', pre_params)
     ################################
     # mcf motion correction
     # stc slice tiem correction
     ################################ 
-
 
     mcf = False
     stc  = False
@@ -609,16 +517,17 @@ def main():
         sys.exit()
     
     ########### Loading array to do not read from File #########
-    load_from_file = False
-    if load_from_file is True:
-        print " Loading time series from from array... "
-        seed_ts,nonseed_ts = load_time_series('seed_ts.npy', 'nonseed_ts.npy')
+    # load_from_file = False
+    # if load_from_file is True:
+    #     print " Loading time series from from array... "
+    #     seed_ts,nonseed_ts = load_time_series('seed_ts.npy', 'nonseed_ts.npy')
 
-    # verify and load from the full path of each images
+    # load and verify from the full path of each images
     group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
-    cohort = group[-1]
+    cohort = group[0]
     file_list = select_cohort(cohort)
     epi_file_list = verify_and_load_images(file_list)
+
     print('Images found at:{}', epi_file_list)
     basename = os.path.basename(epi_file_list[0])
     dirname = os.path.dirname(epi_file_list[0])
@@ -626,16 +535,6 @@ def main():
     print('Changing directory to:{}',dirname)
     os.chdir(dirname)
     print('Changed directory to:{}',os.getcwd())
-    # Get only 2 subjects for speed
-    #epi_file_list = epi_file_list[3:10]
-    if len(epi_file_list) > 0:
-        print('Nifti images for cohort:', cohort, ' loaded')
-        print(epi_file_list)
-        nb_of_subjects = len(epi_file_list)
-        print "Nb of subjects = %s" % nb_of_subjects
-        dirname = os.path.dirname(epi_file_list[0])
-    else:
-        sys.exit('ERROR: File(s) containing the images do not exist')
           
     #######################################
     # Create masker from which to extract #
@@ -643,12 +542,12 @@ def main():
     # mask_type = ['atlas','DMN', 'AN',   #
     #'SN', 'brain_wide']                  #
     #######################################
-    seed_based = False
+    
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[2]
+    mask_type = mask_type[-1]
     if mask_type.find('DMN') > -1 :
       print('The Mask type is a Network not an Atlas...\n')
-      mask_label= afmri.get_MNI_coordinates(mask_type)
+      mask_label = afmri.get_MNI_coordinates(mask_type)
       labels = mask_label.keys()
       coords = mask_label.values()
       print('labels are {} coords are {} \n',labels, coords)
@@ -708,76 +607,44 @@ def main():
     # Pearson correlation (power based)   #
     # and coherence                       #
     ####################################### 
-    
-    # threshold used when plotting the results 
-    threshold = 0.6 
-    single_subject = False
-    subject_id = 0
-    seed_id = 0
+    seed_based = True
+    seed_id = 0 # PCC in the DMN
     if seed_based is True:
-        if single_subject is True:
-            print "\n SINGLE SUBJECT ANALYSIS: Computing Seed based correlation and Coherence....\n" 
-            # time x 1 voxel
-            seed_ts = extract_seed_ts(seed_ts,seed_id)
-            print "Extracting time series from the entire brain....seat tight, it will take some time....\n"
-            nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_file_list[subject_id], pre_params)
-            print "Calculating the seed based correlation matrix and ploting in MNI space....\n"
-            #seed_corr_fisher = calculate_and_plot_seed_based_correlation(seed_ts, nonseed_masker,nonseed_ts,mask_type[idx], mask_label,pre_params, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort)
-            seed_corr_fisher = calculate_and_plot_seed_based_correlation(seed_ts, nonseed_masker,nonseed_ts, mask_type, mask_label,pre_params, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort, subject_id)
-            # seed based Coherency analysis
-            print "Calculating the seed based coherency matrix and ploting in MNI space....\n"
-            Cxy_targets, f, Cxymean = calculate_and_plot_seed_based_coherence(seed_ts, nonseed_masker, nonseed_ts, mask_type, mask_label, pre_params, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort, freqband, subject_id, 'coherence')
-        else:
-            #loop for the n subjects
-            print "\n GROUP ANALYSIS: Computing Seed based correlation and Coherence....\n" 
-            non_seed_corr_list = []
-            non_seed_coh_list = []
-            non_seed_masker_list = []
-            non_seed_ts_list = []
-            #nb_of_subjects = 2
-            for subject_id in range(0, nb_of_subjects):
-                print "Extracting time series for Subject %s / %s \n" % (subject_id, nb_of_subjects-1)
-                seed_ts = seed_ts_subjects[subject_id]
-                #plot_time_series(time_series[subject_id], subject_id)
-                seed_ts = extract_seed_ts(seed_ts,seed_id)
-                nonseed_masker, nonseed_ts = extract_non_seed_mask_and_ts(epi_file_list[subject_id], pre_params)     
-                nonseed_corr_fisher, nonseed_masker,nonseed_ts = calculate_and_plot_seed_based_correlation(seed_ts, nonseed_masker, nonseed_ts,'DMN',mask_label,preproc_parameters_list, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort,subject_id)
+      print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 1' )
+      list_corr_stat_map, list_coh_stat_map = [], []
+      epi_file_list1 = verify_and_load_images(select_cohort('converter'))
+      seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list1)
+      corr_stat_map, coh_stat_map, nonseed_masker = afmri.build_seed_based_stat_map(epi_file_list1, seed_ts_subjects, pre_params, mask_type, coords, seed_id, dirname, cohort)
+      list_corr_stat_map.append(corr_stat_map)
+      list_coh_stat_map.append(coh_stat_map)
+      # Get the stat map for another group oin order to study difference
+      print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 2' )
+      epi_file_list2 = verify_and_load_images(select_cohort('control'))
+      seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list2)
+      corr_stat_map, coh_stat_map, nonseed_masker = afmri.build_seed_based_stat_map(epi_file_list2, seed_ts_subjects, pre_params, mask_type, coords, seed_id, dirname, cohort)
+      list_corr_stat_map.append(corr_stat_map)
+      list_coh_stat_map.append(coh_stat_map)
 
-                Cxy_targets, f, Cxymean = calculate_and_plot_seed_based_coherence(seed_ts,nonseed_masker, nonseed_ts, 'DMN', mask_label, pre_params, epi_file_list[subject_id],seed_coords,seed_id,dirname, cohort, freqband, subject_id,'coherence')
-
-                # YS calculate_and_plot_seed_based_COHERENCE
-                non_seed_masker_list.append(nonseed_masker)
-                non_seed_corr_list.append(nonseed_corr_fisher)
-                non_seed_coh_list.append(Cxymean)
-                non_seed_ts_list.append(nonseed_ts)
-            #calculate the mean of the seed based across individuals
-            #mean in absolute value
-            #arr_fisher_corr = np.abs(np.array(non_seed_corr_list))
-            arr_fisher_corr = np.array(non_seed_corr_list)
-            arr_coherence = np.array(non_seed_coh_list)
-            #print "Wise mean of the Fisher seed correlation across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_fisher_corr.min(), arr_fisher_corr.max(), arr_fisher_corr.mean(), arr_fisher_corr.std())
-            wisemean_fisher = arr_fisher_corr.mean(axis=0)
-            wisemean_coh = arr_coherence.mean(axis=0)
-            voxels = wisemean_fisher.shape[0]
-            wisemean_fisher = wisemean_fisher.reshape(voxels,1)
-            wisemean_coh = wisemean_coh.reshape(voxels,1)
-            subject_id='Mean:'
-            # save in file
-            #np.save('/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/figures/conv_arr_fisher_corr', arr_fisher_corr)
-            np.save('figures/conv_arr_fisher_corr', arr_fisher_corr)
-            conv_params_plot= [wisemean_fisher, non_seed_masker_list[0], seed_coords, dirname, threshold, subject_id, cohort]
-            #np.save('/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/figures/conv_params_plot', conv_params_plot)
-            np.save('figures/conv_params_plot', conv_params_plot)
-            afmri.plot_seed_based_correlation_MNI_space(wisemean_fisher, non_seed_masker_list[0], seed_coords, dirname, threshold, subject_id, cohort)
-            #print "Wise mean of the Seed Coherence (Welch method) across subjects. min=%s, max=%s, mean=%s and std=%s." % (arr_coherence.min(), arr_coherence.max(), arr_coherence.mean(), arr_coherence.std())
-            display = afmri.plot_seed_based_coherence_MNI_space(wisemean_coh, non_seed_masker_list[0], seed_coords, dirname, threshold, subject_id, cohort)
-        
+      print('.....compute_seed_based_ttest_groups for 2 groups\n')
+      
+      stat_map_g1 = list_corr_stat_map[0] 
+      stat_map_g2 = list_corr_stat_map[1] 
+      type_stat_map = 'Correlation'
+      print('.....Correlation ttest_stat_map_groups for 2 groups\n')
+      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, type_stat_map, coords[seed_id])
+      
+      type_stat_map = 'Coherence'
+      stat_map_g1 = list_coh_stat_map[0]
+      stat_map_g2 = list_coh_stat_map[1] 
+      print('.....Coherence ttest_stat_map_groups for 2 groups\n')
+      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, type_stat_map, coords[seed_id])
+    
+    pdb.set_trace()    
     #######################################
     # Build connectome in time domain     # 
     # Correlation/Covariance/Precision    #
     #                                     #
     ####################################### 
-
     kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation']
     print "Building connectome in Time domain : {}...\n".format(kind_of_correlation)
     # correlation and covariance return identical result
@@ -888,19 +755,15 @@ def main():
       afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
       print "Plotting Sparse CV Matrix (inverse covariance) \n"
       msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-      pdb.set_trace()
       afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
       # Cant plot the connetome because I dont have the coords
-
-    pdb.set_trace()
-    
 
     #######################################
     # Granger causality                   #
     # test and plot Granger connectome    #
     #                                     #
     ####################################### 
-    print "\n\nCalculating granger causality matrix, subjects:%d Mask type:%s" %(nb_of_subjects, mask_type)
+    print "\n\nCalculating granger causality matrix, subjects:%d Mask type:%s" %(len(epi_file_list), mask_type)
     #granger_test_results = granger_causality_analysis(seed_ts_subjects[0], pre_params,label_map, order=10)
     #YS: Need the average , check doesnt work
 
@@ -910,9 +773,9 @@ def main():
     #                                     #
     ####################################### 
 
-    print('\n\nCalling to group ICA...\n\n\n\n')
+    print('\n\n Calling to group ICA...\n\n\n\n')
     afmri.group_ICA(epi_file_list, pre_params, cohort)
 
-    print('\n\nCalling to group Ward clustering...\n\n\n\n')
+    print('\n\n Calling to group Ward clustering...\n\n\n\n')
     afmri.clustering_Ward(epi_file_list, pre_params, cohort)
     print('\n\n ----- END of test_fmri.py --- \n\n')
