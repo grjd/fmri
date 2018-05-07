@@ -10,6 +10,8 @@ pdb alias ll u;;d;;l
 """
 import os
 import sys
+sys.path.insert(0, '/Users/jaime/github/code/production/network_and_topology/')
+import network_analysis as neta
 import numpy as np
 import pdb
 import matplotlib.pyplot as plt
@@ -216,8 +218,6 @@ def select_cohort(cohort_group):
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0940_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w1021_fMRI_mcf.nii.gz']
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
-    epi_file_list_one = ['/Users/jaime/vallecas/data/cyst_arach/wcyst_fMRI_RESTING_S_20171018163846_10.nii']
-    epi_file_list_one = ['/Users/jaime/Downloads/s_008.nii']
     just_testing = ['/Users/jaime/Downloads/testmni/w0022_fMRI_mcf.nii.gz', '/Users/jaime/Downloads/testmni/w0028_fMRI_mcf.nii.gz']
     
     if cohort_group is 'converter':               
@@ -431,6 +431,7 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
         seed_ts_subjects =  np.asarray(time_series_list)
         plotted_ts = np.asarray(plotted_ts_list) 
         print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
+
     return seed_ts_subjects, plotted_ts
 
 
@@ -453,6 +454,21 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
 #   stat_map_g1 = pd.DataFrame(list_stat_map1)
 #   stat_map_g2 = pd.DataFrame(list_stat_map2)
 #   return stat_map1, stat_map2
+
+def compute_network_based_analysis(matrices, labels):
+  """ compute_network_based_analysis 
+  Args:matrices list of matrices or single matrix
+  Output: 
+  """
+  #convert matrix into a dataframe 
+  if isinstance(matrices, (list,)): 
+    print('Loop for the list of matrices')
+    for i in matrices:
+      curmat = matrices
+      #convert ndarray into dataframe
+      df = pd.DataFrame(curmat,labels, labels)
+      print("Labels of the Connectivity Matrix : " + str(df.columns.values))
+      G = neta.build_graph_correlation_matrix(df, threshold=None)
 
 
 def plot_graph_from_atlas(corr_matrix, time_series, atlas):
@@ -524,10 +540,9 @@ def main():
 
     # load and verify from the full path of each images
     group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
-    cohort = group[0]
+    cohort = group[-1]
     file_list = select_cohort(cohort)
     epi_file_list = verify_and_load_images(file_list)
-
     print('Images found at:{}', epi_file_list)
     basename = os.path.basename(epi_file_list[0])
     dirname = os.path.dirname(epi_file_list[0])
@@ -537,14 +552,13 @@ def main():
     print('Changed directory to:{}',os.getcwd())
           
     #######################################
-    # Create masker from which to extract #
-    # time series.                        #
-    # mask_type = ['atlas','DMN', 'AN',   #
-    #'SN', 'brain_wide']                  #
+    # Create mask from which to extract   #
+    # time series                         #
+    #                                     #             
     #######################################
     
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[-1]
+    mask_type = mask_type[0]
     if mask_type.find('DMN') > -1 :
       print('The Mask type is a Network not an Atlas...\n')
       mask_label = afmri.get_MNI_coordinates(mask_type)
@@ -568,24 +582,18 @@ def main():
       labels = atlas.labels
       #coords are missing!!
 
-    #masker, mask_label, label_map, seed_id, seed_coords, mask_type = prepare_mask_creation(pre_params, seed_based, mask_type)
+    print("\n Calling to Generate Mask type:" + mask_type + "\n")  
     masker = afmri.generate_mask(mask_type, pre_params, epi_filename=None)
     #######################################
-    # Extract time series from the masker #
-    # with the preproc parameters         #
-    # single subject or group analysis    # 
-    # subject_id is optional, if none.    #
-    # process all images  
-    # Example: (1 subject) prepare_timeseries_extraction(masker, epi_file_list, subject_id=0) #
-    #          (Group) prepare_timeseries_extraction(masker, epi_file_list) 
+    # Extract time series from the mask   #
+    #                                     #
     ####################################### 
-
-    #Set in plot_time_series the vartiable figsdirectory with the directory where the plots will be saved
-    #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
+    #signal is clean in afmri.extract_timeseries_from_mask to increase SNR
     seed_ts, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list)#, subject_id=0)
     # seed_ts == plotted_ts when more than 1 subject
     seed_ts_subjects = seed_ts
-    #prepare_timeseries_extraction(masker, epi_file_list)
+    # remove 4 first slices
+    #seed_ts_subjects[:,4:,:], plotted_ts[:,4:,:]
     
     #######################################
     # fourier_spectral_estimation.        #
@@ -597,69 +605,83 @@ def main():
     psd_allsubjects = list()
     for i in range(0, seed_ts.shape[0]):
         print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
-        psd = afmri.fourier_spectral_estimation(seed_ts[i].T, pre_params, 'subject:' + str(i))
+        psd = afmri.fourier_spectral_estimation(seed_ts_subjects[i].T, pre_params, 'subject:' + str(i))
         psd_allsubjects.append(psd)
+  
 
-    #YS: plot psd of the average of all subjects
-    #psd = afmri.fourier_spectral_estimation(<calculate the mean subjects 120x4>, pre_params)
     #######################################
     # Seed based analysis                 #
     # Pearson correlation (power based)   #
-    # and coherence                       #
+    # and coherence    Mask=DMN           #
     ####################################### 
-    seed_based = True
+    seed_based = False
     seed_id = 0 # PCC in the DMN
     if seed_based is True:
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 1' )
       list_corr_stat_map, list_coh_stat_map = [], []
       epi_file_list1 = verify_and_load_images(select_cohort('converter'))
+      dirname =  os.path.dirname(epi_file_list1[0])
+      #change current directory
+      #print('Changing directory to:{}',dirname)
+      #os.chdir(dirname)
+      #print('Changed directory to:{}',os.getcwd())
       seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list1)
+      #seed_ts_subjects = seed_ts_subjects[:,4:,:]
       corr_stat_map, coh_stat_map, nonseed_masker = afmri.build_seed_based_stat_map(epi_file_list1, seed_ts_subjects, pre_params, mask_type, coords, seed_id, dirname, cohort)
       list_corr_stat_map.append(corr_stat_map)
       list_coh_stat_map.append(coh_stat_map)
       # Get the stat map for another group oin order to study difference
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 2' )
       epi_file_list2 = verify_and_load_images(select_cohort('control'))
+      dirname =  os.path.dirname(epi_file_list2[0])
       seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list2)
+      #seed_ts_subjects = seed_ts_subjects[:,4:,:]
       corr_stat_map, coh_stat_map, nonseed_masker = afmri.build_seed_based_stat_map(epi_file_list2, seed_ts_subjects, pre_params, mask_type, coords, seed_id, dirname, cohort)
       list_corr_stat_map.append(corr_stat_map)
       list_coh_stat_map.append(coh_stat_map)
 
-      print('.....compute_seed_based_ttest_groups for 2 groups\n')
+      print('\n.....compute_seed_based_ttest_groups for 2 groups\n')
       
       stat_map_g1 = list_corr_stat_map[0] 
       stat_map_g2 = list_corr_stat_map[1] 
       type_stat_map = 'Correlation'
-      print('.....Correlation ttest_stat_map_groups for 2 groups\n')
-      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, type_stat_map, coords[seed_id])
+      print('\n.....Correlation ttest_stat_map_groups for 2 groups\n')
+      threshold = 0.6 # threshold can be blank it will be assigned in the function
+      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, dirname, threshold, type_stat_map, coords[seed_id])
       
       type_stat_map = 'Coherence'
       stat_map_g1 = list_coh_stat_map[0]
       stat_map_g2 = list_coh_stat_map[1] 
-      print('.....Coherence ttest_stat_map_groups for 2 groups\n')
-      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, type_stat_map, coords[seed_id])
-    
-    pdb.set_trace()    
+      print('\n.....Coherence ttest_stat_map_groups for 2 groups\n')
+      ttest_stat_map_groups, pval_stat_map_groups, pvalscorr_stat_map_groups = afmri.ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, dirname, threshold, type_stat_map, coords[seed_id])
+      print("\n Done with Seed Based Correlation=Coherence for two groups, see results at: " + str(dirname) + "/figures" + "\n\n")  
+      print('Exiting Program...')
+      return 0
     #######################################
     # Build connectome in time domain     # 
     # Correlation/Covariance/Precision    #
     #                                     #
     ####################################### 
-    kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation']
-    print "Building connectome in Time domain : {}...\n".format(kind_of_correlation)
-    # correlation and covariance return identical result
-    idcor = 4
-    #kind_of_analysis='time',
+
+    print("Building connectome in Time domain ...\n")
+    kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
+    #correlation and covariance return identical result
     #corr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[0])
-    cov_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[1])
-    tangent_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[2])
-    precision_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[3])
-    pcorr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[4])
+    cov_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='covariance')
+    tangent_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='tangent')
+    precision_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='precision')
+    pcorr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='partial correlation')
+    # Build Group Covariance and the Precision Matrix using using GroupSparseCovarianceCV
+    print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
+    precision_matrix_sparseCV, cov_matrix_sparseCV = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
+    
     #save the matrices
     matricesdirectory = os.path.join(os.getcwd(), 'matrices')
     if not os.path.exists(matricesdirectory) is True:
       print('Creating matrices directory....\n')
       os.makedirs(matricesdirectory)
+    
+    #pdb.set_trace()
     arraytosave = os.path.join(matricesdirectory,"cov_matrices_" + mask_type + ".npy")
     print("Saving cov_matrices at {} \n",arraytosave) 
     np.save(arraytosave, cov_matrices)
@@ -672,91 +694,102 @@ def main():
     arraytosave = os.path.join(matricesdirectory,"pcorr_matrices_" + mask_type + ".npy")
     print("Saving pcorr_matrices at {} \n",arraytosave)
     np.save(arraytosave, pcorr_matrices)
+    arraytosave = os.path.join(matricesdirectory,"precision_matrix_sparseCV_" + mask_type + ".npy")
+    print("Saving precision_matrix_sparseCV at {} \n",arraytosave)
+    np.save(arraytosave, precision_matrix_sparseCV)
+    arraytosave = os.path.join(matricesdirectory,"cov_matrix_sparseCV_" + mask_type + ".npy")
+    print("Saving cov_matrix_sparseCV at {} \n", arraytosave)
+    np.save(arraytosave, cov_matrix_sparseCV)
 
     #######################################
     # Build connectome in Frequency domain# 
     # Coherence                           #
     #                                     #
     ####################################### 
-    frequency_analysis = False
+    frequency_analysis = True
     if frequency_analysis is True:
+      kind_of_correlation = ['coherency', 'correlation', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
       print "Building connectome in Frequency domain. Coherency...\n"
       coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, pre_params, freqband)
       # convert list into ndarray subjects x time x voxels 
       coherency_matrices =  np.asarray(coherency_matrices)
+      arraytosave = os.path.join(matricesdirectory,"coherency_matrices_" + mask_type + ".npy")
+      print("Saving coherency_matrices at {} \n",arraytosave) 
+      np.save(arraytosave, coherency_matrices)
       # mean across subjects
       coherency_mean_subjects = coherency_matrices.mean(axis=0)
-      #######################################
-      # Plot connectome in Frequency domain # 
-      #######################################
-      print "Plotting the mean of the coherence connectome matrices ...\n"
-
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{} {}-{}Hz".format(cohort, mask_label.keys(),'Coherence', freqband[0], freqband[1])
-      what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
-      afmri.plot_correlation_matrix(coherency_mean_subjects, labels, msgtitle, what_to_plot)
     
-    #######################################
-    # Build Group Covariance              # 
-    # and the Precision Matrix using      #
-    # using GroupSparseCovarianceCV      #
-    ####################################### 
-
-    #what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True), ('plot_connectome',True)])
-    #
-    print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
-    precision_matrix_sparseCV, cov_matrix_sparseCV = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
     #######################################
     # Plot connectome in time domian      #
     # mean for subjects and/or            #
     #      single subjects                # 
-    ####################################### 
-
-    print "Plotting the mean of the connectome matrices ...\n"
-    if kind_of_correlation[idcor] is 'covariance':
-      connectome_to_plot = cov_matrices
-    elif kind_of_correlation[idcor] is 'tangent':
-      connectome_to_plot = tangent_matrices
-    elif kind_of_correlation[idcor] is 'precision':
-      connectome_to_plot = precision_matrices
-    elif kind_of_correlation[idcor] is 'partial correlation':
-      connectome_to_plot = pcorr_matrices
+    #######################################     
+    print("Plotting the connectome matrices for correlation type: " + str(kind_of_correlation) + "\n\n")
     what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
     
-    print('Transforming connectome_to_plot to ndarray \n')
-    if type(connectome_to_plot) is list:
-      connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
-      connectome_to_plot_mean = connectome_to_plot.mean(-1)     
-        
-    if mask_type.find('msdl') > -1:
-      print('Plotting the Mean subjects connectome for MSDL Atlas .... \n')
-      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
-      # for a single subject eg id=0
-      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
-      print('Plotting the heat map and graph for MSDL Atlas .... \n')
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
-      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
-      print "Plotting Sparse CV Matrix (inverse covariance) \n"
-      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
-    elif mask_type.find('DMN') > -1:
-      print('Plotting the Mean subjects connectome for the DMN .... \n')
-      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
-      # for a single subject eg id=0
-      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
-      print('Plotting the heat map and graph for the DMN .... \n')
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,kind_of_correlation[idcor])
-      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
-      print "Plotting tSparse CV Matrix (inverse covariance) \n"
-      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
-    elif mask_type.find('maxprob') > -1:
-      print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
-      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, kind_of_correlation[idcor])
-      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
-      print "Plotting Sparse CV Matrix (inverse covariance) \n"
-      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
-      # Cant plot the connetome because I dont have the coords
+    for idcor in kind_of_correlation:
+      #select the connectome_to_plot
+      if idcor is 'coherency':
+        connectome_to_plot = coherency_matrices
+        connectome_to_plot_mean = coherency_mean_subjects
+      if idcor is 'covariance':
+        connectome_to_plot = cov_matrices
+      elif idcor is 'tangent':
+        connectome_to_plot = tangent_matrices
+      elif idcor is 'precision':
+        connectome_to_plot = precision_matrices
+      elif idcor is 'partial correlation':
+        connectome_to_plot = pcorr_matrices
+      elif idcor is 'precision_matrix_sparseCV':
+        connectome_to_plot = precision_matrix_sparseCV
+        connectome_to_plot_mean = connectome_to_plot
+      elif idcor is 'partial cov_matrix_sparseCV':
+        connectome_to_plot = cov_matrix_sparseCV
+        connectome_to_plot_mean = connectome_to_plot
+
+      print('Transforming connectome_to_plot to ndarray \n')
+      if type(connectome_to_plot) is list:
+        connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
+        connectome_to_plot_mean = connectome_to_plot.mean(-1)   
+      if mask_type.find('msdl') > -1:
+        print('Plotting the Mean subjects connectome for MSDL Atlas .... \n')
+        plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+        # for a single subject eg id=0
+        #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+        print('Plotting the heat map and graph for MSDL Atlas .... \n')
+        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
+        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+
+        print "Plotting Sparse CV Matrix (inverse covariance) \n"
+        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
+      
+      elif mask_type.find('DMN') > -1:
+        print('Plotting the Mean subjects connectome for the DMN .... \n')
+        plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+        # for a single subject eg id=0
+        #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+        print('Plotting the heat map and graph for the DMN .... \n')
+        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,idcor)
+        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+        print "Plotting tSparse CV Matrix (inverse covariance) \n"
+        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
+      elif mask_type.find('maxprob') > -1:
+        print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
+        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
+        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+        print "Plotting Sparse CV Matrix (inverse covariance) \n"
+        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+        # Cant plot the connetome because I dont have the coords
+
+    print("\n\n Connectome DONE results at: " + str(matricesdirectory) + "\n\n")
+    #print('Exiting...')
+    #return 0
+
+    print('Network based analysis....')
+    compute_network_based_analysis()
 
     #######################################
     # Granger causality                   #

@@ -15,6 +15,7 @@ from datetime import datetime
 from nilearn import plotting
 from nilearn import datasets
 import nitime.timeseries as ts
+import nilearn.signal
 from nilearn.image import mean_img, index_img, image
 from nilearn.plotting import (plot_roi, plot_epi,plot_prob_atlas, find_xyz_cut_coords, show,
                               plot_stat_map)    
@@ -279,7 +280,9 @@ def get_atlas_labels(label):
                 
                           
 def generate_mask(mask_type, preproc_parameters, epi_filename=None):
-    '''generate_mask returns a mask object depending on the mask type
+    '''generate_mask returns a mask object depending on the mask type.
+    the mak is fit to the data (epi)
+    Args: mask_type (str), preproc_parameters (dict), epi_filename
     '''
     from nilearn import datasets
     from nilearn.input_data import NiftiLabelsMasker, NiftiSpheresMasker, NiftiMasker, NiftiMapsMasker 
@@ -482,7 +485,10 @@ def extract_timeseries_from_mask(masker, epi_file):
     epi_file: is a image file
     if it is just one file it returns one ndarray time x voxels'''      
     print "'........Extracting time series for image {}:".format(epi_file)
-    time_series = masker.fit_transform(epi_file)        
+    time_series = masker.fit_transform(epi_file)    
+    #Improve SNR on masked fMRI signals
+    print('Cleaning the time series to Improve SNR ...')
+    time_series = nilearn.signal.clean(time_series)    
     print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])
     return time_series
 
@@ -643,10 +649,11 @@ def build_seed_based_stat_map(epi_file_list, seed_ts_subjects, preproc_parameter
     if not os.path.exists(statmaps_dir):
         print('Creating matrices directory {}', statmaps_dir)
         os.makedirs(statmaps_dir)
-    statmaps_corr = os.path.join(statmaps_dir,'conv_arr_fisher_corr')    
+    matrixinfile = 'conv_arr_fisher_corr_' + mask_name
+    statmaps_corr = os.path.join(statmaps_dir, matrixinfile)    
     np.save(statmaps_corr, arr_fisher_corr)
-    statmaps_coh = os.path.join(statmaps_dir,'conv_arr_coherence') 
-    #conv_params_plot= [wisemean_fisher, seed_coords, dirname, threshold, subject_id, cohort]
+    matrixinfile = 'conv_arr_coherence_' + mask_name   
+    statmaps_coh = os.path.join(statmaps_dir, matrixinfile) 
     np.save(statmaps_coh, arr_coherence)
 
     print(' Ploting the mean of the stat maps....\n')
@@ -692,7 +699,7 @@ def extract_non_seed_mask_and_ts(epi_file, preproc_parameters_list):
     ''' extract_non_seed_mask_and_ts '''
     nonseed_masker = generate_mask('brain-wide', preproc_parameters_list, epi_file)
     nonseed_ts = extract_timeseries_from_mask(nonseed_masker, epi_file) 
-    return nonseed_masker, nonseed_ts
+    return nonseed_masker, nonseed_ts #[:,4:,:]
 
 ## coherence 
 def calculate_and_plot_seed_based_coherence(time_series, nonseed_masker, nonseed_ts, preproc_parameters_list, seed_coords, seed_id, dirname, cohort, subject_id):
@@ -766,7 +773,7 @@ def load_time_series(seed_path, nonseed_path):
 
 #### moved from test #####
 
-def ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, dirname, type_stat_map=None, dim_coords=None):  
+def ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, dirname=None, threshold=None, type_stat_map=None, dim_coords=None):  
     """ttest_stat_map_groups ttest between two statistical maps 
     Args:stat_map_g1, stat_map_g2. ndarray (Subjects, Vocels) 
     Output: 
@@ -799,6 +806,7 @@ def ttest_stat_map_groups(stat_map_g1, stat_map_g2, nonseed_masker, threshold, d
             reject, pvalscorr = multipletests(pval_stat_map_groups, alpha=alpha, method=method)[:2]
             msg = 'case %s %3.2f rejected:%d\npval_raw=%r\npvalscorr=%r' % (method, alpha, reject.sum(), pval_stat_map_groups, pvalscorr)
             filenamemsg = 'pval_mult:'+ method
+            #values elow the threshold as plot as transparent
             plot_stat_map_in_MNI_space(1-pval_stat_map_groups, nonseed_masker, dim_coords, dirname, 1-alpha, filenamemsg, '2G', type_stat_map)
       
     return ttest_stat_map_groups, pval_stat_map_groups, pvalscorr
@@ -989,6 +997,7 @@ def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None,
 
     from nitime.viz import drawmatrix_channels, drawgraph_channels
     # if what_to_plot is not specified define what to plot
+    fig_h_draw, fig_g_draw = None, None   
     if what_to_plot is None:
         plot_heatmap = True
         plot_graph = True
@@ -997,12 +1006,16 @@ def plot_correlation_matrix(corr_matrix, label_map, msgtitle, what_to_plot=None,
         plot_graph = what_to_plot['plot_graph']   
     if plot_heatmap is True:
         print('Plotting correlation_matrix as a heatmap from nitime...')
-        #fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle)  
-        fig_h_drawx = drawmatrix_channels(corr_matrix, label_map, size=[10., 10.], color_anchor=0, title= msgtitle)   
+        #fig_h_drawx = drawmatrix_channels(corr_matrix, label_map[0], size=[10., 10.], color_anchor=0, title= msgtitle) 
+        #nitime.viz.drawgraph_channels(in_m, channel_names=None, cmap=<matplotlib.colors.LinearSegmentedColormap object>, node_shapes=None, node_colors=None, title=None, layout=None, threshold=None) 
+        fig_h_draw = drawmatrix_channels(corr_matrix, label_map, size=[10., 10.], color_anchor=0, title= msgtitle) 
+        #save figure  
     if plot_graph == True:    
         print('Plotting correlation_matrix as a (circular) network nitime...')
         #fig_g_drawg = drawgraph_channels(corr_matrix, label_map[0],title=msgtitle)
-        fig_g_drawg = drawgraph_channels(corr_matrix, label_map, title=msgtitle)
+        fig_g_draw = drawgraph_channels(corr_matrix, label_map, title=msgtitle)
+        #save figure
+
     #plotting connectivity network with brain overimposed
     # if plot_connectome is True:
     #     if edge_threshold is None:
@@ -1183,7 +1196,7 @@ def calculate_seed_based_correlation_destriaux(nonseed_ts, nonseed_masker):
 
 def plot_surface_of_3D_stat_map(localizer_tmap):
     """ plot_surface_of_3D_stat_map plots nifti file image 
-    Args:localizer_tmap str containing the path of a 3D .nii image which is the result of a ttest"""
+    Args:localizer_tmap str containing the path of a 3D .nii image eg the result of a ttest"""
 
     from nilearn import surface
     from nilearn.image import threshold_img
