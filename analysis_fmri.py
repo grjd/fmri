@@ -409,6 +409,7 @@ def motion_correction(epi_file, preproc_params):
     dirname = os.path.dirname(epi_file)
     basename = os.path.basename(epi_file)
     mcfoutput = os.path.basename(epi_file)[:5] + 'outliers.txt'
+    pngoutput = os.path.basename(epi_file)[:5] + 'outliers.png'
     mcf_results_path = os.path.join(dirname,'mcf_results')
     if not os.path.exists(mcf_results_path):
         print('Creating mcf results path at {}',mcf_results_path)
@@ -417,6 +418,8 @@ def motion_correction(epi_file, preproc_params):
     mcfoutput = os.path.join('mcf_results', str(mcfoutput))
     mcfoutliers = os.path.basename(epi_file)[:5] + 'report.txt'
     mcfoutliers = os.path.join('mcf_results', str(mcfoutliers))
+
+    pngoutput = os.path.join('mcf_results', str(pngoutput))
     # epi_file_output must exist 'touch epi_file_output'
     epi_file_output = os.path.join(dirname, str(epi_file))
     #mcflt.inputs.out_file = epi_file
@@ -436,8 +439,9 @@ def motion_correction(epi_file, preproc_params):
 
     print("Calculating the outlier run and saving the report...")
     print "fsl_motion_outliers -i {} --dummy=4 --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
-    #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", "-v >", mcfoutliers])
-    out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--dummy=4", "--nomoco", "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
+    #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", -p pngoutputfile "-v >", mcfoutliers])
+
+    out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--dummy=4", "--nomoco", "-p ", str(pngoutput), "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
     f = open( mcfoutliers, 'w' )
     f.write( out + '\n' )
     f.close()
@@ -965,16 +969,23 @@ def build_connectome_in_frequency(time_series, preproc_params, freqband=None):
     Input: time_series : subjects x time points x voxels
          : preproc_params
          : freqband: [high pass, low pass] eg 0.01, 0.1''' 
-    time_series.ndim
+    #time_series.ndim ==1 time_series[0].shape[0] = 120, time_series[0].shape[1]=voxels
     subjects_matrices = []
-    for s in range(0, time_series.shape[0]):
-        print "Calculating connectome coherency based matrix for subject: {} /  {}".format(s, time_series.shape[0]-1)
+    nb_subjects = time_series.shape[0]
+    nb_voxels = time_series[0].shape[1]
+    nb_timepoints = time_series[0].shape[0]
+
+    for s in range(0, nb_subjects):
+        #pdb.set_trace()
+        print "Calculating connectome coherency based matrix for subject: {} /  {}".format(s, nb_subjects - 1)
         # initialize voxels x voxels
-        coherency_1s = np.zeros((time_series.shape[2], time_series.shape[2]))
+        #coherency_1s = np.zeros((time_series.shape[2], time_series.shape[2]))
+        coherency_1s = np.zeros((nb_voxels, nb_voxels))
         #coherency_1s = np.fill_diagonal(coherency_1s, 1)
-        for voxi in range(0,time_series.shape[2]):
-            for voxj in range(0,time_series.shape[2]):
+        for voxi in range(0,nb_voxels):
+            for voxj in range(0,nb_voxels):
                 #if voxj >= voxi: or make the matrix symmetric at the end
+                pdb.set_trace()
                 x = time_series[s].T[voxi]
                 y = time_series[s].T[voxj]
                 f, cxy = calculate_coherence(x,y, preproc_params)

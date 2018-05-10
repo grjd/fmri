@@ -82,96 +82,94 @@ def select_cohort(cohort_group):
                           '/Users/jaime/vallecas/data/converters_y1/controls/0935_fMRI.nii',
                           '/Users/jaime/vallecas/data/converters_y1/controls/1017_fMRI.nii',
                           '/Users/jaime/vallecas/data/converters_y1/controls/1116_fMRI.nii']
-    epi_file_list_scdplus = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0015_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0023_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0037_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0045_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0081_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0084_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0167_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0205_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0208_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0231_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0241_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0268_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0329_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0373_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0386_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0440_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0447_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0464_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0467_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0533_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0537_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0549_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0589_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0667_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0691_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0700_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0733_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0736_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0745_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0760_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0797_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0816_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0828_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0831_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0860_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0885_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0897_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0899_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0936_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0940_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/0978_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/1017_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/1073_fMRI.nii',]
-    epi_file_list_scd_control = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0032_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0061_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0075_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0109_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0114_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0122_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0225_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0234_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0245_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0256_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0295_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0299_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0313_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0320_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0345_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0355_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0357_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0365_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0370_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0390_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0416_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0429_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0437_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0456_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0468_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0469_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0495_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0520_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0523_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0551_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0552_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0630_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0663_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0674_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0710_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0716_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0748_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0762_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0769_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0792_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0805_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0842_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0845_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0859_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0865_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0935_fMRI.nii',
-                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0964_fMRI.nii']               
+    epi_file_list_scdplus = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0015_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0023_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0037_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0045_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0081_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0084_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0167_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0205_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0208_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0231_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0241_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0268_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0329_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0373_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0386_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0440_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0447_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0464_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0467_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0533_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0537_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0549_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0589_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0667_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0691_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0700_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0733_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0736_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0745_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0760_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0797_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0816_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0828_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0831_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0860_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0885_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0897_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0899_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0936_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0940_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w0978_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w1017_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/w1073_fMRI_mcf.nii.gz',]
+    epi_file_list_scd_control = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0032_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0061_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0075_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0109_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0114_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0122_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0225_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0234_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0245_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0256_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0295_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0299_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0313_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0345_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0355_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0357_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0365_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0370_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0390_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0416_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0429_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0437_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0456_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0468_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0469_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0495_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0520_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0523_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0630_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0663_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0674_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0710_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0716_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0748_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0762_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0769_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0792_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0805_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0842_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0845_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0859_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0865_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0935_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w0964_fMRI_mcf.nii.gz',
+                          '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/w1043_fMRI_mcf.nii.gz']               
     epi_file_list_healthy = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/controls/w0028_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/controls/w0049_fMRI_mcf.nii.gz',
@@ -206,11 +204,11 @@ def select_cohort(cohort_group):
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0372_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0377_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0382_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/converters/w0407_fMRI_mcf.nii.gz',
+                             '/Users/jaime/vallecas/data/converters_y1/converters/w0407_fMRI_mcf.nii.gz', #14 outlliers motion
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0464_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0583_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0618_fMRI_mcf.nii.gz',
-                             '/Users/jaime/vallecas/data/converters_y1/converters/w0637_fMRI_mcf.nii.gz',
+                             #'/Users/jaime/vallecas/data/converters_y1/converters/w0637_fMRI_mcf.nii.gz', #13 outlliers motion and large corr and coherence remove
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0707_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0882_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0885_fMRI_mcf.nii.gz',
@@ -220,20 +218,24 @@ def select_cohort(cohort_group):
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
     just_testing = ['/Users/jaime/Downloads/testmni/w0022_fMRI_mcf.nii.gz', '/Users/jaime/Downloads/testmni/w0028_fMRI_mcf.nii.gz']
     
-    if cohort_group is 'converter':               
-        return epi_file_list_conv
-        #retunr just 2 
+    if cohort_group is 'converter':
+      return epi_file_list_conv
+      #return just 2 
     elif cohort_group is 'control':
-        return epi_file_list_healthy
+      return epi_file_list_healthy
     elif cohort_group is 'single_subject':
-        #load a single image
-        return epi_file_list_one
+      #load a single image
+      return epi_file_list_one
     elif cohort_group is 'scdplus':
-        return epi_file_list_scdplus
+      return epi_file_list_scdplus
+    elif cohort_group is 'motionscdplus':
+      return motion_epi_file_list_scdplus
+    elif cohort_group is 'motionscdhealthy':
+      return motion_epi_file_list_scd_control
     elif cohort_group is 'scdcontrol':
-        return epi_file_list_scd_control
+      return epi_file_list_scd_control
     elif cohort_group is 'test':
-        return just_testing
+      return just_testing
     elif cohort_group is 'motioncorrection':
       return motioncorrection
 
@@ -293,6 +295,9 @@ def read_motioncorrection_report(epi_file_list, directory=None):
     import re
     nusubjects = len(epi_file_list)
     dirname =  os.path.dirname(epi_file_list[0])
+    if not os.path.exists(os.path.join(os.path.join(dirname, 'mcf_results'))) is True:
+      print('Creating mcf_results directory....\n')
+      os.makedirs(matricesdirectory)
     reportfilefinal = os.path.join(os.path.join(dirname, 'mcf_results'), 'ReportfileFinal.txt')
     ffinal = open(reportfilefinal, 'w' )
     for i in range(0,nusubjects):
@@ -395,10 +400,7 @@ def extract_seed_ts(time_series,seed_id):
     Output: seed_ts'''
     
     seed_ts = time_series[:,seed_id].reshape(time_series.shape[0],1) 
-    return seed_ts
-
-
-    
+    return seed_ts   
 
 def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None): 
     """ prepare for extracting the timer serioes"""
@@ -427,13 +429,25 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
                 plotted_ts_list.append(plotted_ts)    
         # list of time series as an array         
         # print('AQUI')
-        # pdb.set_trace()
+        #pdb.set_trace()
         seed_ts_subjects =  np.asarray(time_series_list)
         plotted_ts = np.asarray(plotted_ts_list) 
         print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
 
     return seed_ts_subjects, plotted_ts
 
+def delete_scan(delete_scans, in_file, out_file=None):
+  import nibabel as nib
+  if out_file is None:
+    out_file = in_file
+  print("Loading the nii file:" + str(in_file) + " and delete " + str(delete_scans) + " scans")
+  img = nib.load(in_file)
+  #img.get_data_dtype()
+  #img.to_filename(os.path.join('build','test4d.nii.gz'))
+  img_ = nib.Nifti1Image(img.get_data()[...,delete_scans:], img.affine, img.header)
+  print("New image shape is: " + str(img_.shape))
+  nib.save(img_,out_file)
+  print("Saving the image as:" + str(out_file))
 
 # def compute_seed_based_ttest_groups(epi_list1, epi_list2, pre_params):
 #   nb_of_subjects1, nb_of_subjects2 = len(epi_list1), len(epi_list2)
@@ -455,21 +469,6 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
 #   stat_map_g2 = pd.DataFrame(list_stat_map2)
 #   return stat_map1, stat_map2
 
-def compute_network_based_analysis(matrices, labels):
-  """ compute_network_based_analysis 
-  Args:matrices list of matrices or single matrix
-  Output: 
-  """
-  #convert matrix into a dataframe 
-  if isinstance(matrices, (list,)): 
-    print('Loop for the list of matrices')
-    for i in matrices:
-      curmat = matrices
-      #convert ndarray into dataframe
-      df = pd.DataFrame(curmat,labels, labels)
-      print("Labels of the Connectivity Matrix : " + str(df.columns.values))
-      G = neta.build_graph_correlation_matrix(df, threshold=None)
-
 
 def plot_graph_from_atlas(corr_matrix, time_series, atlas):
   """plot_graph_from_atlas  plot the corresponding graph from an atlas (extratcted time series)
@@ -486,6 +485,24 @@ def main():
     freqband = [0.01, 0.1]    
     freqband = [pre_params['high_pass'], pre_params['low_pass']]
     #nonseed_mask = afmri.generate_mask('brain-wide', pre_params)
+    
+    ################################
+    # delete dummy scans 
+    # 
+    ################################
+    delete_scans = 0 #delete_scans = 0 to do not delete scans 
+    if delete_scans > 0:
+      file_list = select_cohort('motionscdplus')
+      nb_subjects = len(file_list)
+      file_list_deleted_scans = []
+      for i in range(0, nb_subjects):
+        image116 = delete_scan(delete_scans, file_list[i], out_file=None)
+        file_list_deleted_scans.append(image116)
+      file_list = file_list_deleted_scans[:] 
+      print("\n Done with deleting dummy scans, see results at: " + str(os.path.basename(file_list_deleted_scans[0]))  + "  \n\n")  
+      print('Exiting Program...')
+      return 0
+     
     ################################
     # mcf motion correction
     # stc slice tiem correction
@@ -495,10 +512,10 @@ def main():
     stc  = False
     if mcf is True:
         print('Performing Motion Correction....\n)')
-        cohort = 'motioncorrection'
+        cohort = 'scdcontrol' #'motioncorrection'
         file_list = select_cohort(cohort)
+        #file_list = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/0313_fMRI.nii']
         # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
-        # or using the subjects id for a hierarchical std structure: verify_and_load_images(None, '['bcpa0537_1','bcpa0578_1', 'bcpa0650_1']','/Users/jaime/vallecas/mario_fa/RF_off','wbold_data.nii')
         epi_file_list = verify_and_load_images(file_list)
         print('Images found at:{}', epi_file_list)
         basename = os.path.basename(epi_file_list[0])
@@ -516,14 +533,16 @@ def main():
         #3 Steps: 1.gzip -kd *.nii.gz
         #         2. Normalize
         #         3. gzip w*.nii
-        # rename epi_file_list adding _mcf
+        # rename epi_file_list adding [w]*_mcf.nii.gz
         # epi_file_list_mcf = list()
         # for i in range(0,len(epi_file_list)):
         #     base = os.path.splitext(epi_file_list[i])[0]
         #     base = base + '_mcf.nii.gz'
         #     epi_file_list_mcf.append(base)
         # epi_file_list = verify_and_load_images(epi_file_list_mcf)
-        sys.exit()
+        print("\n Done with Motion Correction for group: " + str(cohort) + " results at:" + str(dirname) + "\n\n")  
+        print('Exiting Program...')
+        return 0
     
     if stc is True:
         if slicetime_correction(epi_file_list, pre_params) is not True: 
@@ -540,7 +559,7 @@ def main():
 
     # load and verify from the full path of each images
     group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
-    cohort = group[-1]
+    cohort = 'scdplus' #group[4] 'scdcontrol' #
     file_list = select_cohort(cohort)
     epi_file_list = verify_and_load_images(file_list)
     print('Images found at:{}', epi_file_list)
@@ -558,7 +577,7 @@ def main():
     #######################################
     
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[0]
+    mask_type = mask_type[-1]
     if mask_type.find('DMN') > -1 :
       print('The Mask type is a Network not an Atlas...\n')
       mask_label = afmri.get_MNI_coordinates(mask_type)
@@ -575,7 +594,6 @@ def main():
       atlas_filename = atlas.maps
       labels = atlas.labels
       #coords are missing!!
-
     elif mask_type.find('sub-maxprob-thr25-2mm') > -1:
       atlas = datasets.fetch_atlas_harvard_oxford('sub-maxprob-thr25-2mm')
       atlas_filename = atlas.maps
@@ -592,6 +610,8 @@ def main():
     seed_ts, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list)#, subject_id=0)
     # seed_ts == plotted_ts when more than 1 subject
     seed_ts_subjects = seed_ts
+    print("Extracted and plot time series for cohort:" + str(cohort) + "  ") 
+ 
     # remove 4 first slices
     #seed_ts_subjects[:,4:,:], plotted_ts[:,4:,:]
     
@@ -601,25 +621,27 @@ def main():
     #plot spectra for all subjects or only one
     #Set in fourier_spectral_estimation the variable figsdirectory with the directory where the plots will be saved
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
-    #YS: FIX to calculate the PSD also for Atlas not always DMN
-    psd_allsubjects = list()
-    for i in range(0, seed_ts.shape[0]):
-        print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
-        psd = afmri.fourier_spectral_estimation(seed_ts_subjects[i].T, pre_params, 'subject:' + str(i))
-        psd_allsubjects.append(psd)
-  
-
+    plot_psd_per_roi = False
+    if plot_psd_per_roi is True:
+      psd_allsubjects = list()
+      for i in range(0, seed_ts.shape[0]):
+          print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
+          psd = afmri.fourier_spectral_estimation(seed_ts_subjects[i].T, pre_params, 'subject:' + str(i))
+          psd_allsubjects.append(psd)
+          print("Plot PSD for cohort:" + str(cohort) + "  ")     #return 0    
+    
     #######################################
     # Seed based analysis                 #
     # Pearson correlation (power based)   #
     # and coherence    Mask=DMN           #
     ####################################### 
-    seed_based = False
-    seed_id = 0 # PCC in the DMN
+    seed_based = True
+    seed_id = 0 # mask_type must be DMN PCC in the DMN
     if seed_based is True:
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 1' )
       list_corr_stat_map, list_coh_stat_map = [], []
-      epi_file_list1 = verify_and_load_images(select_cohort('converter'))
+      cohort = 'scdplus'
+      epi_file_list1 = verify_and_load_images(select_cohort(cohort))
       dirname =  os.path.dirname(epi_file_list1[0])
       #change current directory
       #print('Changing directory to:{}',dirname)
@@ -632,7 +654,8 @@ def main():
       list_coh_stat_map.append(coh_stat_map)
       # Get the stat map for another group oin order to study difference
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 2' )
-      epi_file_list2 = verify_and_load_images(select_cohort('control'))
+      cohort = 'scdcontrol'
+      epi_file_list2 = verify_and_load_images(select_cohort(cohort))
       dirname =  os.path.dirname(epi_file_list2[0])
       seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list2)
       #seed_ts_subjects = seed_ts_subjects[:,4:,:]
@@ -664,7 +687,7 @@ def main():
     ####################################### 
 
     print("Building connectome in Time domain ...\n")
-    kind_of_correlation = ['correlation', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
+    kind_of_correlation = ['covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
     #correlation and covariance return identical result
     #corr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation=kind_of_correlation[0])
     cov_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='covariance')
@@ -672,7 +695,7 @@ def main():
     precision_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='precision')
     pcorr_matrices = afmri.build_connectome(seed_ts_subjects, kind_of_correlation='partial correlation')
     # Build Group Covariance and the Precision Matrix using using GroupSparseCovarianceCV
-    print "Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
+    print "\n Calculating the Group Covariance and the Precision Matrix (inverse covariance) \n"
     precision_matrix_sparseCV, cov_matrix_sparseCV = afmri.build_sparse_invariance_matrix(seed_ts_subjects, labels)
     
     #save the matrices
@@ -706,9 +729,9 @@ def main():
     # Coherence                           #
     #                                     #
     ####################################### 
-    frequency_analysis = True
+    frequency_analysis = False
     if frequency_analysis is True:
-      kind_of_correlation = ['coherency', 'correlation', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
+      kind_of_correlation = ['coherency', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
       print "Building connectome in Frequency domain. Coherency...\n"
       coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, pre_params, freqband)
       # convert list into ndarray subjects x time x voxels 
@@ -726,7 +749,8 @@ def main():
     #######################################     
     print("Plotting the connectome matrices for correlation type: " + str(kind_of_correlation) + "\n\n")
     what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
-    
+
+    kind_of_correlation = kind_of_correlation[-1]
     for idcor in kind_of_correlation:
       #select the connectome_to_plot
       if idcor is 'coherency':
@@ -743,11 +767,12 @@ def main():
       elif idcor is 'precision_matrix_sparseCV':
         connectome_to_plot = precision_matrix_sparseCV
         connectome_to_plot_mean = connectome_to_plot
-      elif idcor is 'partial cov_matrix_sparseCV':
+      elif idcor is 'cov_matrix_sparseCV':
         connectome_to_plot = cov_matrix_sparseCV
         connectome_to_plot_mean = connectome_to_plot
 
       print('Transforming connectome_to_plot to ndarray \n')
+
       if type(connectome_to_plot) is list:
         connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
         connectome_to_plot_mean = connectome_to_plot.mean(-1)   
@@ -785,18 +810,18 @@ def main():
         # Cant plot the connetome because I dont have the coords
 
     print("\n\n Connectome DONE results at: " + str(matricesdirectory) + "\n\n")
-    #print('Exiting...')
-    #return 0
+    print('Exiting...')
+    return 0
 
     print('Network based analysis....')
-    compute_network_based_analysis()
+    neta.compute_network_based_analysis()
 
     #######################################
     # Granger causality                   #
     # test and plot Granger connectome    #
     #                                     #
     ####################################### 
-    print "\n\nCalculating granger causality matrix, subjects:%d Mask type:%s" %(len(epi_file_list), mask_type)
+    print "\n\n Calculating granger causality matrix, subjects:%d Mask type:%s" %(len(epi_file_list), mask_type)
     #granger_test_results = granger_causality_analysis(seed_ts_subjects[0], pre_params,label_map, order=10)
     #YS: Need the average , check doesnt work
 
