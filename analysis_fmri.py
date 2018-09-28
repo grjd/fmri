@@ -163,7 +163,9 @@ def clustering_Ward(epi_file_list, preproc_parameters, cohort=None):
     msgtitle ="Ward parcellation:%s, nclusters=%s" % (cohort,n_clusters) 
     msgoutputfile = 'Ward_' + 'nclusters_'+ str(n_clusters) + '.png'
     msgoutputfile = 'figures/' + msgoutputfile
-    cut_coords = (0,-52,18)
+    cut_coords = (0, -52, 18)
+    #cyst 
+    cut_coords = (48, 18, -2) 
     first_plot = plot_roi(labels_img, mean_func_img, title=msgtitle, output_file= msgoutputfile, display_mode='ortho', cut_coords=cut_coords)
     #print ('cut coords:', cut_coords)
     dirname = os.path.dirname(epi_file_list[0])
@@ -280,9 +282,8 @@ def get_atlas_labels(label):
                 
                           
 def generate_mask(mask_type, preproc_parameters, epi_filename=None):
-    '''generate_mask returns a mask object depending on the mask type.
-    the mak is fit to the data (epi)
-    Args: mask_type (str), preproc_parameters (dict), epi_filename
+    '''generate_mask returns a mask object depending on the mask type. The mak is fit to the data (epi)
+    Args: mask_type (str), preproc_parameters (dict), epi_filename used only if mask_type == 'brain-wide'
     '''
     from nilearn import datasets
     from nilearn.input_data import NiftiLabelsMasker, NiftiSpheresMasker, NiftiMasker, NiftiMapsMasker 
@@ -396,6 +397,9 @@ def generate_mask(mask_type, preproc_parameters, epi_filename=None):
     return masker  
 
 def motion_correction(epi_file, preproc_params):
+    """ motion_correction run fsl mcflirt 
+    Args: epi_file, preproc_params
+    Output: True, creates motion corrected image *_mcf.nii.gz and report file mcf_results/report.txt using fsl_motion_outliers"""
     #from nipype.interfaces import fsl
     import subprocess 
     #import ntpath
@@ -416,6 +420,8 @@ def motion_correction(epi_file, preproc_params):
         os.makedirs(mcf_results_path)
 
     mcfoutput = os.path.join('mcf_results', str(mcfoutput))
+    #“spikes > 3 mm” are used to exclude participants due to motion. 
+    #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4262543/
     mcfoutliers = os.path.basename(epi_file)[:5] + 'report.txt'
     mcfoutliers = os.path.join('mcf_results', str(mcfoutliers))
 
@@ -434,15 +440,16 @@ def motion_correction(epi_file, preproc_params):
     
     # FSL Motion Outliers https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLMotionOutliers
     # subprocess.check_output(["fsl_motion_outliers", "-i", str(epi_file_output), "-o", "output_motion_outliers", "-v"])
-    mcf_outputfilename = os.path.basename(epi_file_output)[:-4] + '_mcf.' + 'nii.gz'
+    #mcf_outputfilename = os.path.basename(epi_file_output)[:-4] + '_mcf.' + 'nii.gz'
+    mcf_outputfilename = os.path.basename(epi_file_output).split('.')[0] + '_mcf.' + 'nii.gz'
     subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-o", mcf_outputfilename,"-cost", "mutualinfo", "-report"])
 
-    print("Calculating the outlier run and saving the report...")
+    print("Calculating the outliers and saving the report at: %s/%s \n" %(mcfoutput,mcfoutliers))
     print "fsl_motion_outliers -i {} --dummy=4 --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
     #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", -p pngoutputfile "-v >", mcfoutliers])
 
     out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--dummy=4", "--nomoco", "-p ", str(pngoutput), "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
-    f = open( mcfoutliers, 'w' )
+    f = open(mcfoutliers, 'w' )
     f.write( out + '\n' )
     f.close()
     return True
@@ -492,7 +499,7 @@ def extract_timeseries_from_mask(masker, epi_file):
     time_series = masker.fit_transform(epi_file)    
     #Improve SNR on masked fMRI signals
     print('Cleaning the time series to Improve SNR ...')
-    time_series = nilearn.signal.clean(time_series)    
+    time_series = nilearn.signal.clean(time_series)
     print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])
     return time_series
 
@@ -985,7 +992,7 @@ def build_connectome_in_frequency(time_series, preproc_params, freqband=None):
         for voxi in range(0,nb_voxels):
             for voxj in range(0,nb_voxels):
                 #if voxj >= voxi: or make the matrix symmetric at the end
-                pdb.set_trace()
+
                 x = time_series[s].T[voxi]
                 y = time_series[s].T[voxj]
                 f, cxy = calculate_coherence(x,y, preproc_params)
@@ -1250,7 +1257,3 @@ def plot_surface_of_3D_stat_map(localizer_tmap):
     plotting.plot_prob_atlas(regions_value_img, bg_img=localizer_tmap,
                          view_type='contours', display_mode='z',
                          cut_coords=5, title=title)
-
-
-
-

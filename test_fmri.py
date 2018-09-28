@@ -216,6 +216,7 @@ def select_cohort(cohort_group):
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0940_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w1021_fMRI_mcf.nii.gz']
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
+    epi_file_list_one = ['/Users/jaime/vallecas/data/cyst_arach/w__fMRI_RESTING_S_20171018163846_10_mcf.nii.gz']
     just_testing = ['/Users/jaime/Downloads/testmni/w0022_fMRI_mcf.nii.gz', '/Users/jaime/Downloads/testmni/w0028_fMRI_mcf.nii.gz']
     
     if cohort_group is 'converter':
@@ -246,11 +247,10 @@ def prepare_plot_time_series(time_series, subject_id):
     #plot specific voxels ts_to_plot = range(0,10) or just plot as such for example for DMN mask
     print "Plotting time series series voxels... \n"
     #msgtitle = "Time series in subject:{} voxels:{}".format(subject_id, n_rand_voxels)
-    msgtitle = "Time series in subject:{}, DMN voxels".format(subject_id)
+    msgtitle = "Time series in subject:{}, {} voxels".format(subject_id, time_series.shape[1])
     #plotted_ts = time_series[:,n_rand_voxels]
     plot_time_series(time_series, msgtitle)
     plotted_ts = time_series
-    #plot_time_series(plotted_ts, msgtitle)
     return plotted_ts
 
 def plot_time_series(timeseries, msgtitle=None):
@@ -270,26 +270,27 @@ def plot_time_series(timeseries, msgtitle=None):
     filenametosave = os.path.join(figsdirectory,"ts_" + msgtitle[msgtitle.find("subject"):msgtitle.find(",")] +'.png')
 
     if not os.path.exists(figsdirectory) is True:
-      os.makedirs(figsdirectory)
-    
+      os.makedirs(figsdirectory)  
     print("Saving time series at {} \n",filenametosave)
     plt.savefig(filenametosave, bbox_inches="tight")
-      
-    plt.close() 
+    #plt.close() 
 
-def motion_correction(epi_file_list, preproc_parameters_list):
-    ''' motion_correction: motion correction using the FSL wrapper MCFLIRT
+def run_motion_correction(epi_file_list, preproc_parameters_list):
+    ''' run_motion_correction: motion correction using the FSL wrapper MCFLIRT
     Input: epi_file_list path of epi images
     preproc_parameters_list: preprocessign parameters
     Output: boolean. True MCFLIRT run with no errors  '''
     moc_res  = True
     for f in epi_file_list:
-        moc_res = afmri.motion_correction(f, preproc_parameters_list)
-        moc_res = moc_res and moc_res
+      if '_mcf' in f:
+        print('\n ERROR!! The file %s is already been motion corrected. Exiting... \n' %f)
+        return False
+      moc_res = afmri.motion_correction(f, preproc_parameters_list)
+      moc_res = moc_res and moc_res
     return moc_res         
 def read_motioncorrection_report(epi_file_list, directory=None):
     '''read_motioncorrection_report : reads mcf_results/id_report.txt files 
-    Args: None by default loos at ./mcf_results
+    Args: None by default looks at ./mcf_results
     Output:None print out the number of spikes for each image
     '''
     import re
@@ -407,47 +408,97 @@ def prepare_timeseries_extraction(masker, epi_file_list, subject_id=None):
     plotted_ts = []
     toplot = True
     basename = os.path.basename(epi_file_list[0])
-    if subject_id is not None: #single subject
-        print "Extracting time series for 1 subject \n"
-        time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list[subject_id]) #epi_file_list[subject_id]) 
-         # time x n voxels (eg 4 nodes in the DMN)
-        seed_ts = time_series
-        # reshape subjects x time x voxels
-        seed_ts_subjects = seed_ts.reshape(1, seed_ts.shape[0], seed_ts.shape[1])
-        print "\n EXTRACTED Seed Time Series. Number of time points: {} x Voxels:{} \n".format(seed_ts.shape[0],seed_ts.shape[1])
-        #plot only some time series
-        plotted_ts = prepare_plot_time_series(seed_ts, subject_id)
+    if subject_id is not None:
+      print "Extracting time series for 1 subject \n"
+      #epi_file_list[subject_id]) 
+      time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list[subject_id]) 
+      # time x n voxels (eg 4 nodes in the DMN)
+      seed_ts = time_series
+      # reshape subjects x time x voxels
+      seed_ts_subjects = seed_ts.reshape(1, seed_ts.shape[0], seed_ts.shape[1])
+      print "\n EXTRACTED Seed Time Series. Number of time points: {} x Voxels:{} \n".format(seed_ts.shape[0],seed_ts.shape[1])
+      #plot only some time series
+      plotted_ts = prepare_plot_time_series(seed_ts, subject_id)
     else:
-        # list of images extract the time series for each image
-        time_series_list = []
-        plotted_ts_list = []
-        for i in range(0, len(epi_file_list)):
-                print('........Extracting image %d / %d', (i,len(epi_file_list)-1))
-                time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list[i]) 
-                time_series_list.append(time_series)  
-                plotted_ts = prepare_plot_time_series(time_series, i)
-                plotted_ts_list.append(plotted_ts)    
-        # list of time series as an array         
-        # print('AQUI')
-        #pdb.set_trace()
-        seed_ts_subjects =  np.asarray(time_series_list)
-        plotted_ts = np.asarray(plotted_ts_list) 
-        print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
+      # list of images extract the time series for each image
+      time_series_list = []
+      plotted_ts_list = []
+      print("Extracting time series for a list of %s subjects \n" %len(epi_file_list))
+      for i in range(0, len(epi_file_list)):
+        print('........Extracting image %d / %d', (i,len(epi_file_list)-1))
+        time_series = afmri.extract_timeseries_from_mask(masker, epi_file_list[i]) 
+        time_series_list.append(time_series)  
+        plotted_ts = prepare_plot_time_series(time_series, i)
+        plotted_ts_list.append(plotted_ts)    
+      seed_ts_subjects =  np.asarray(time_series_list)
+      plotted_ts = np.asarray(plotted_ts_list) 
+      print "\n EXTRACTED Seed Time Series. Number of Subjects: {} x time points: {} x Voxels:{}".format(seed_ts_subjects.shape[0], seed_ts_subjects[0].shape[0], seed_ts_subjects[0].shape[1])
 
     return seed_ts_subjects, plotted_ts
 
-def delete_scan(delete_scans, in_file, out_file=None):
+def get_labels_and_coords_from_atlas(mask_type):
+  """get_labels_and_coords_from_atlas
+  Args: mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
+  Output: """
+  #mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
+  #mask_type = mask_type[-1]
+  atlas_dict = {'DMN': {'labels': None, 'dim_coords': '27', 'coords': None}, 'atlas-msdl': {'atlas_filename': None, 'labels': None, 'coords': None},\
+  'cort-maxprob-thr25-2mm': {'atlas_filename': None, 'labels': None, 'coords': None}, 'sub-maxprob-thr25-2mm': {'atlas_filename': None, 'labels': None, 'coords': None}}
+  
+  if mask_type.find('DMN') > -1 :
+    print('The Mask type is DMN...\n')
+    label = ['PCC', 'lTPJ', 'rTPJ', 'mPFC']
+    # http://nilearn.github.io/auto_examples/03_connectivity/plot_adhd_spheres.html#sphx-glr-auto-examples-03-connectivity-plot-adhd-spheres-py
+    dim_coords = OrderedDict([(label[0],(0, -52, 18)),(label[1],(-46, -68, 32)), (label[2],(46, -68, 32)),(label[3],(1, 50, -5))])
+    labels = dim_coords.keys()
+    coords = dim_coords.values()
+    print('labels are {} coords are {} \n',labels, coords)
+    atlas_dict['DMN']['dim_coords'], atlas_dict['DMN']['labels'], atlas_dict['DMN']['coords'] = dim_coords, labels, coords
+  elif mask_type.find('msdl') > -1:
+    atlas = datasets.fetch_atlas_msdl()
+    atlas_filename = atlas['maps']
+    labels = atlas['labels']
+    coords = atlas.region_coords
+    atlas_dict['atlas-msdl']['atlas_filename'], atlas_dict['atlas-msdl']['labels'], atlas_dict['atlas-msdl']['coords'] = atlas_filename, labels, coords
+  elif mask_type.find('cort-maxprob-thr25-2mm') > -1:
+    atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')
+    atlas_filename = atlas.maps
+    labels = atlas.labels
+    #remove background label
+    labels = labels[1:]
+    coords = [] #coords are missing!!
+    atlas_dict['cort-maxprob-thr25-2mm']['atlas_filename'], atlas_dict['cort-maxprob-thr25-2mm']['labels'], atlas_dict['cort-maxprob-thr25-2mm']['coords'] = atlas_filename, labels, coords
+  elif mask_type.find('sub-maxprob-thr25-2mm') > -1:
+    atlas = datasets.fetch_atlas_harvard_oxford('sub-maxprob-thr25-2mm')
+    atlas_filename = atlas.maps
+    labels = atlas.labels
+    #remove background label
+    labels = labels[1:]
+    coords = [] #coords are missing!!
+    atlas_dict['sub-maxprob-thr25-2mm']['atlas_filename'], atlas_dict['sub-maxprob-thr25-2mm']['labels'], atlas_dict['sub-maxprob-thr25-2mm']['coords'] = atlas_filename, labels, coords
+  
+  return atlas_dict 
+
+def delete_dummyscans(delete_scans, in_file, out_file=None):
+  """ delete_scans delete delete_scans from the 4D in_file
+  Args: delete_scans (int) 4, in_file, out_file """
   import nibabel as nib
   if out_file is None:
     out_file = in_file
-  print("Loading the nii file:" + str(in_file) + " and delete " + str(delete_scans) + " scans")
+  print("\n \n Loading the nii file:" + str(in_file) + " and delete " + str(delete_scans) + " scans.")
   img = nib.load(in_file)
+  oldimg_header = img.header
+  oldintensity = [oldimg_header['cal_min'], oldimg_header['cal_max']]
   #img.get_data_dtype()
   #img.to_filename(os.path.join('build','test4d.nii.gz'))
   img_ = nib.Nifti1Image(img.get_data()[...,delete_scans:], img.affine, img.header)
-  print("New image shape is: " + str(img_.shape))
+  newimg_header = img_.header
+  newintensity = [newimg_header['cal_min'], newimg_header['cal_max']]
+  print("Old image shape: " + str(img.shape) + ". New image shape: " + str(img_.shape))
+  print("Change in min max intensities :" + str(oldintensity) + " to " + str(newintensity))
   nib.save(img_,out_file)
   print("Saving the image as:" + str(out_file))
+  return img_
 
 # def compute_seed_based_ttest_groups(epi_list1, epi_list2, pre_params):
 #   nb_of_subjects1, nb_of_subjects2 = len(epi_list1), len(epi_list2)
@@ -479,57 +530,71 @@ def plot_graph_from_atlas(corr_matrix, time_series, atlas):
 #### MAIN  PROGRAM ####
 ####################### ####################### ####################### #######################
 def main():
+    ################################
+    # Run Motion Correction, will create _mcf.nii.gz and mmcf_results
+    # When mcf are created  normalize in MNI
+    # as described in matlab_normalization/normalize_matlab.py
+    # continue analysis mcf =False and setting the cohot file names including _mcf
+    ################################
+
+    ################################
     plt.close('all')
+    ################################
+    # Load images 
+    ################################
+
+    # load and verify from the full path of each images
+    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
+    cohort = group[2] #'scdplus' #group[4] 'scdcontrol' #
+    file_list = select_cohort(cohort)
+    #file_list = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/0313_fMRI.nii']
+    # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
+    epi_file_list = verify_and_load_images(file_list)
+    print('\n Images found at:{}', epi_file_list)
+    basename, dirname = os.path.basename(epi_file_list[0]), os.path.dirname(epi_file_list[0])
+    #change current directory
+    os.chdir(dirname)
+    print('\n Changed directory to:{}',os.getcwd())
+    #nonseed_mask = afmri.generate_mask('brain-wide', pre_params)
     # Load preprocessing parameters   
     pre_params = preproc_parameters_list()
     freqband = [0.01, 0.1]    
     freqband = [pre_params['high_pass'], pre_params['low_pass']]
-    #nonseed_mask = afmri.generate_mask('brain-wide', pre_params)
-    
     ################################
-    # delete dummy scans 
-    # 
+    # delete dummy scans (Don't do it) 
+    # we DONE need to delte the initial scans in a GE machine
     ################################
     delete_scans = 0 #delete_scans = 0 to do not delete scans 
     if delete_scans > 0:
-      file_list = select_cohort('motionscdplus')
+      file_list = select_cohort('test')
       nb_subjects = len(file_list)
       file_list_deleted_scans = []
       for i in range(0, nb_subjects):
-        image116 = delete_scan(delete_scans, file_list[i], out_file=None)
-        file_list_deleted_scans.append(image116)
-      file_list = file_list_deleted_scans[:] 
-      print("\n Done with deleting dummy scans, see results at: " + str(os.path.basename(file_list_deleted_scans[0]))  + "  \n\n")  
+        #pdb.set_trace()
+        image = delete_dummyscans(delete_scans, file_list[i], None)
+        file_list_deleted_scans.append(image)
+      #file_list = file_list_deleted_scans[:] 
+      print("\n Done with deleting dummy scans, new nifti images at: " + str(os.path.dirname(file_list[0]))  + "  \n\n")  
       print('Exiting Program...')
       return 0
      
     ################################
     # mcf motion correction
-    # stc slice tiem correction
+    # stc slice time correction
     ################################ 
 
     mcf = False
     stc  = False
     if mcf is True:
-        print('Performing Motion Correction....\n)')
-        cohort = 'scdcontrol' #'motioncorrection'
-        file_list = select_cohort(cohort)
-        #file_list = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/0313_fMRI.nii']
-        # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
-        epi_file_list = verify_and_load_images(file_list)
-        print('Images found at:{}', epi_file_list)
-        basename = os.path.basename(epi_file_list[0])
-        dirname = os.path.dirname(epi_file_list[0])
-        #change current directory
-        print('Changing directory to:{}',dirname)
-        os.chdir(dirname)
-        print('Changed directory to:{}',os.getcwd())
-        if motion_correction(epi_file_list, pre_params) is not True:
+        print('\n Performing Motion Correction....\n)')
+        #cohort = 'scdcontrol' #'motioncorrection'
+        if run_motion_correction(epi_file_list, pre_params) is not True:
             sys.exit("ERROR performing Motion Correction!")
-        read_motioncorrection_report(epi_file_list)
+        #write final report if more than one subject
+        if len(file_list) >1: read_motioncorrection_report(epi_file_list)
         print('Motion correction Finished. Perform MNI normalization to continue \n')
         #print('go to /Users/jaime/github/code/production/matlab-normalization/normalize-boldMNI-vPython.m') 
-        print('When MNI normalization is done set file_list and mcf = False :) \n')
+        print('When MNI normalization is done set file_list and mcf = False.) \n')
         #3 Steps: 1.gzip -kd *.nii.gz
         #         2. Normalize
         #         3. gzip w*.nii
@@ -556,20 +621,17 @@ def main():
     # if load_from_file is True:
     #     print " Loading time series from from array... "
     #     seed_ts,nonseed_ts = load_time_series('seed_ts.npy', 'nonseed_ts.npy')
+    # file_list = select_cohort(cohort)
+    # epi_file_list = verify_and_load_images(file_list)
+    # print('Images found at:{}', epi_file_list)
+    # basename = os.path.basename(epi_file_list[0])
+    # dirname = os.path.dirname(epi_file_list[0])
+    # #change current directory
+    # print('Changing directory to:{}',dirname)
+    # os.chdir(dirname)
+    # print('Changed directory to:{}',os.getcwd())
+    ############################################ 
 
-    # load and verify from the full path of each images
-    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
-    cohort = 'scdplus' #group[4] 'scdcontrol' #
-    file_list = select_cohort(cohort)
-    epi_file_list = verify_and_load_images(file_list)
-    print('Images found at:{}', epi_file_list)
-    basename = os.path.basename(epi_file_list[0])
-    dirname = os.path.dirname(epi_file_list[0])
-    #change current directory
-    print('Changing directory to:{}',dirname)
-    os.chdir(dirname)
-    print('Changed directory to:{}',os.getcwd())
-          
     #######################################
     # Create mask from which to extract   #
     # time series                         #
@@ -577,29 +639,10 @@ def main():
     #######################################
     
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[-1]
-    if mask_type.find('DMN') > -1 :
-      print('The Mask type is a Network not an Atlas...\n')
-      mask_label = afmri.get_MNI_coordinates(mask_type)
-      labels = mask_label.keys()
-      coords = mask_label.values()
-      print('labels are {} coords are {} \n',labels, coords)
-    elif mask_type.find('msdl') > -1:
-      atlas = datasets.fetch_atlas_msdl()
-      atlas_filename = atlas['maps']
-      labels = atlas['labels']
-      coords = atlas.region_coords
-    elif mask_type.find('cort-maxprob-thr25-2mm') > -1:
-      atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')
-      atlas_filename = atlas.maps
-      labels = atlas.labels
-      #coords are missing!!
-    elif mask_type.find('sub-maxprob-thr25-2mm') > -1:
-      atlas = datasets.fetch_atlas_harvard_oxford('sub-maxprob-thr25-2mm')
-      atlas_filename = atlas.maps
-      labels = atlas.labels
-      #coords are missing!!
-
+    mask_type = mask_type[1]
+    atlas_dict = get_labels_and_coords_from_atlas(mask_type)
+    labels, coords = atlas_dict[mask_type]['labels'], atlas_dict[mask_type]['coords']
+    #dim_coords = atlas_dict['DMN']['dim_coords'] other not DMN dim_coords = atlas_dict[mask_type]['atlas_filename']
     print("\n Calling to Generate Mask type:" + mask_type + "\n")  
     masker = afmri.generate_mask(mask_type, pre_params, epi_filename=None)
     #######################################
@@ -609,33 +652,61 @@ def main():
     #signal is clean in afmri.extract_timeseries_from_mask to increase SNR
     seed_ts, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list)#, subject_id=0)
     # seed_ts == plotted_ts when more than 1 subject
+    nb_nodes = seed_ts.shape[-1]
+    nb_nodes = np.arange(nb_nodes)
+    nb_nodes = nb_nodes.tolist()
     seed_ts_subjects = seed_ts
     print("Extracted and plot time series for cohort:" + str(cohort) + "  ") 
- 
-    # remove 4 first slices
-    #seed_ts_subjects[:,4:,:], plotted_ts[:,4:,:]
-    
+    #Plot a subset of the time series
+    plot_some_ts = True
+    #subject to plot and nodes of interest
+    sub_id, subset_cyst_cort, subset_cyst_sub = 0, [1, 4, 5,7,8, 33, 41], [0, 1, 2, 8, 9]
+    #subset_cyst_cort = [11, 14, 15,17,18, 23, 42]
+    if plot_some_ts is True:
+      #plot a subset of nodes in the network
+      subset_nodes = subset_cyst_cort
+      plot_time_series(seed_ts_subjects[sub_id,:,subset_nodes].T, msgtitle='subset nodes '+str(subset_nodes))
+
     #######################################
     # fourier_spectral_estimation.        #
     #######################################
     #plot spectra for all subjects or only one
     #Set in fourier_spectral_estimation the variable figsdirectory with the directory where the plots will be saved
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
-    plot_psd_per_roi = False
+    plot_psd_per_roi = True
     if plot_psd_per_roi is True:
       psd_allsubjects = list()
       for i in range(0, seed_ts.shape[0]):
-          print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
-          psd = afmri.fourier_spectral_estimation(seed_ts_subjects[i].T, pre_params, 'subject:' + str(i))
-          psd_allsubjects.append(psd)
-          print("Plot PSD for cohort:" + str(cohort) + "  ")     #return 0    
-    
+        print("Calculating PSD for subject:{}/{}", i,seed_ts.shape[0])
+        psd = afmri.fourier_spectral_estimation(seed_ts_subjects[i].T, pre_params, 'subject:' + str(i))
+        psd_allsubjects.append(psd)
+        print("Plot PSD for cohort:" + str(cohort) + "  ")     #return 0    
+      #plot_some_psd of interest
+      #if plot_some_psd is True:
+      fig_psd= plt.figure(figsize=(7,6))
+      subset_nodes = subset_cyst_cort
+      for area_id in subset_nodes:
+        # psd[0] = frequency, psd[1] = power
+        plt.plot(psd[area_id][0], psd[area_id][1])
+        msgtitle = 'PSD cyst areas:'+str(subset_nodes)
+        plt.title(msgtitle)
+        plt.ylabel('V**2/Hz') 
+      afmri.save_plot(fig_psd,msgtitle) 
+      #plot non cyst areas
+      diffnodes = set(nb_nodes) - set(subset_nodes)
+      fig_psd_diff= plt.figure(figsize=(7,6))
+      for area_id in diffnodes:
+        plt.plot(psd[area_id][0], psd[area_id][1])
+        msgtitle = 'PSD non cyst:'+str(diffnodes)
+        plt.title(msgtitle)
+        plt.ylabel('V**2/Hz')     
+    afmri.save_plot(fig_psd_diff,msgtitle)  
     #######################################
     # Seed based analysis                 #
     # Pearson correlation (power based)   #
     # and coherence    Mask=DMN           #
     ####################################### 
-    seed_based = True
+    seed_based = False
     seed_id = 0 # mask_type must be DMN PCC in the DMN
     if seed_based is True:
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 1' )
@@ -729,9 +800,9 @@ def main():
     # Coherence                           #
     #                                     #
     ####################################### 
-    frequency_analysis = False
+    frequency_analysis = True
     if frequency_analysis is True:
-      kind_of_correlation = ['coherency', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
+      #kind_of_correlation = ['coherency', 'covariance', 'tangent', 'precision', 'partial correlation', 'precision_matrix_sparseCV', 'cov_matrix_sparseCV']
       print "Building connectome in Frequency domain. Coherency...\n"
       coherency_matrices = afmri.build_connectome_in_frequency(seed_ts_subjects, pre_params, freqband)
       # convert list into ndarray subjects x time x voxels 
@@ -743,16 +814,16 @@ def main():
       coherency_mean_subjects = coherency_matrices.mean(axis=0)
     
     #######################################
-    # Plot connectome in time domian      #
+    # Plot connectome                     #
     # mean for subjects and/or            #
     #      single subjects                # 
     #######################################     
     print("Plotting the connectome matrices for correlation type: " + str(kind_of_correlation) + "\n\n")
     what_to_plot = OrderedDict([('plot_heatmap', True), ('plot_graph', True)])
 
-    kind_of_correlation = kind_of_correlation[-1]
+    kind_of_correlation = [kind_of_correlation[-1]]
+    #print(kind_of_correlation). connectome_to_plot_mean for ndarray 
     for idcor in kind_of_correlation:
-      #select the connectome_to_plot
       if idcor is 'coherency':
         connectome_to_plot = coherency_matrices
         connectome_to_plot_mean = coherency_mean_subjects
@@ -771,51 +842,65 @@ def main():
         connectome_to_plot = cov_matrix_sparseCV
         connectome_to_plot_mean = connectome_to_plot
 
-      print('Transforming connectome_to_plot to ndarray \n')
+    print('Transforming connectome_to_plot to ndarray \n')
+    #connectome_to_plot_mean for list type matrices, for ndarray done above
+    if type(connectome_to_plot) is list:
+      connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
+      connectome_to_plot_mean = connectome_to_plot.mean(-1)
+    if mask_type.find('msdl') > -1:
+      print('Plotting the Mean subjects connectome for MSDL Atlas .... \n')
+      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+      # for a single subject eg id=0
+      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+      print('Plotting the heat map and graph for MSDL Atlas .... \n')
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
 
-      if type(connectome_to_plot) is list:
-        connectome_to_plot = np.transpose(np.asarray(connectome_to_plot))
-        connectome_to_plot_mean = connectome_to_plot.mean(-1)   
-      if mask_type.find('msdl') > -1:
-        print('Plotting the Mean subjects connectome for MSDL Atlas .... \n')
-        plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
-        # for a single subject eg id=0
-        #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
-        print('Plotting the heat map and graph for MSDL Atlas .... \n')
-        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
-        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+      print "Plotting Sparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
+    
+    elif mask_type.find('DMN') > -1:
+      print('Plotting the Mean subjects connectome for the DMN .... \n')
+      plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
+      # for a single subject eg id=0
+      #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
+      print('Plotting the heat map and graph for the DMN .... \n')
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,idcor)
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
+      print "Plotting tSparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
+    elif mask_type.find('maxprob') > -1:
+      print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
+      msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
+      #labels remove label 0 ==background
+      afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+      #plot correlation matrix of subset of nodes background node 0
+      #subset = [1+1, 4+1, 5+1,7+1,8+1, 33+1, 41+1]
+      #afmri.plot_correlation_matrix(connectome_to_plot_mean[subset,:], labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', True)]))
 
-        print "Plotting Sparse CV Matrix (inverse covariance) \n"
-        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
-      
-      elif mask_type.find('DMN') > -1:
-        print('Plotting the Mean subjects connectome for the DMN .... \n')
-        plotting.plot_connectome(connectome_to_plot_mean, coords, edge_threshold="80%", colorbar=True)
-        # for a single subject eg id=0
-        #plotting.plot_connectome(connectome_to_plot[:,:,0], coords, edge_threshold="80%", colorbar=True)
-        print('Plotting the heat map and graph for the DMN .... \n')
-        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type,idcor)
-        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, what_to_plot)
-        print "Plotting tSparse CV Matrix (inverse covariance) \n"
-        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, what_to_plot)
-      elif mask_type.find('maxprob') > -1:
-        print('Plotting the heat map and graph for Harvard Oxford : {}  \n', mask_type)
-        msgtitle = "Mean connectome. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, idcor)
-        afmri.plot_correlation_matrix(connectome_to_plot_mean, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
-        print "Plotting Sparse CV Matrix (inverse covariance) \n"
-        msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
-        afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
-        # Cant plot the connetome because I dont have the coords
+      print "Plotting Sparse CV Matrix (inverse covariance) \n"
+      msgtitle = "Sparse CV. Group:{}, Mask:{}, Corr:{}".format(cohort, mask_type, 'sparse CV')
+      afmri.plot_correlation_matrix(precision_matrix_sparseCV, labels, msgtitle, OrderedDict([('plot_heatmap', True), ('plot_graph', False)]))
+      # Cant plot the connetome because I dont have the coords
 
     print("\n\n Connectome DONE results at: " + str(matricesdirectory) + "\n\n")
-    print('Exiting...')
-    return 0
+    #print('Exiting...')
+    #return 0
 
-    print('Network based analysis....')
-    neta.compute_network_based_analysis()
+    print('\n Network based analysis.... \n')
+    matrix = 'cov_matrices_cort-maxprob-thr25-2mm.npy'
+    matricesnpy = os.path.join(os.getcwd(), 'matrices/', matrix)
+    matrices = np.load(matricesnpy)
 
+    G_metrics = neta.compute_network_based_analysis(matrices, labels)
+    pdb.set_trace()
+    neta.print_summary_network(G_metrics[1][0], nodes=labels)
+    #network properties calculated:
+    netw_props = G_metrics[1][0].keys()
+    G_metrics[1][0]['clustering']
+    
     #######################################
     # Granger causality                   #
     # test and plot Granger connectome    #
