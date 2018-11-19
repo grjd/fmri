@@ -401,7 +401,8 @@ def motion_correction(epi_file, preproc_params):
     Args: epi_file, preproc_params
     Output: True, creates motion corrected image *_mcf.nii.gz and report file mcf_results/report.txt using fsl_motion_outliers"""
     #from nipype.interfaces import fsl
-    import subprocess 
+    import subprocess
+    import shutil
     #import ntpath
     
     #mcflt = fsl.MCFLIRT()
@@ -415,6 +416,7 @@ def motion_correction(epi_file, preproc_params):
     mcfoutput = os.path.basename(epi_file)[:5] + 'outliers.txt'
     pngoutput = os.path.basename(epi_file)[:5] + 'outliers.png'
     mcf_results_path = os.path.join(dirname,'mcf_results')
+    # Create mcf_results directory if does not exist, if it does overwrite
     if not os.path.exists(mcf_results_path):
         print('Creating mcf results path at {}',mcf_results_path)
         os.makedirs(mcf_results_path)
@@ -442,13 +444,18 @@ def motion_correction(epi_file, preproc_params):
     # subprocess.check_output(["fsl_motion_outliers", "-i", str(epi_file_output), "-o", "output_motion_outliers", "-v"])
     #mcf_outputfilename = os.path.basename(epi_file_output)[:-4] + '_mcf.' + 'nii.gz'
     mcf_outputfilename = os.path.basename(epi_file_output).split('.')[0] + '_mcf.' + 'nii.gz'
-    subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-o", mcf_outputfilename,"-cost", "mutualinfo", "-report"])
-
+    # Move mcf files to mcf_results: par parameters file used for confounding
+    subprocess.check_output(["mcflirt", "-in", str(epi_file_output), "-o", mcf_outputfilename,"-cost", "mutualinfo","-mats","-plots","-refvol", str(0),"-rmsrel","-rmsabs","-report"])
+    # orgifile = os.path.join(basename,'.par')
+    # shutil.move("","")
+    # subprocess.check_output(["mv", "*.nii.gz.mat",mcf_results_path])
+    # subprocess.check_output(["mv", "*.nii.gz.par",mcf_results_path])
+    # subprocess.check_output(["mv", "*.rms",mcf_results_path])
     print("Calculating the outliers and saving the report at: %s/%s \n" %(mcfoutput,mcfoutliers))
-    print "fsl_motion_outliers -i {} --dummy=4 --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
+    print "fsl_motion_outliers -i {} --nomoco -o {} -v > {}".format(mcf_outputfilename, mcfoutput, mcfoutliers)
     #subprocess.Popen(["fsl_motion_outliers", "-i", mcf_outputfilename, "--nomoco", -p pngoutputfile "-v >", mcfoutliers])
 
-    out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--dummy=4", "--nomoco", "-p ", str(pngoutput), "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
+    out = subprocess.check_output(["fsl_motion_outliers", "-i", str(mcf_outputfilename), "--nomoco", "-p ", str(pngoutput), "-o", str(mcfoutput), "-v >", str(mcfoutliers)])
     f = open(mcfoutliers, 'w' )
     f.write( out + '\n' )
     f.close()
@@ -490,7 +497,7 @@ def slicetime_correction(epi_file, preproc_params):
     else:
         return False
     
-def extract_timeseries_from_mask(masker, epi_file):
+def extract_timeseries_from_mask(masker, epi_file, confounds=None):
     ''' extract time series from mask object for image defined in epi_file
     Input: masker is a mask built in the function generate_mask
     epi_file: is a image file
@@ -498,8 +505,8 @@ def extract_timeseries_from_mask(masker, epi_file):
     print "'........Extracting time series for image {}:".format(epi_file)
     time_series = masker.fit_transform(epi_file)    
     #Improve SNR on masked fMRI signals
-    print('Cleaning the time series to Improve SNR ...')
-    time_series = nilearn.signal.clean(time_series)
+    #print('Cleaning the time series to Improve SNR confounds=={0]'.format(confounds))
+    time_series = nilearn.signal.clean(time_series, confounds=confounds)
     print('Number of time points:', time_series.shape[0], 'Number of voxels:', time_series.shape[1])
     return time_series
 

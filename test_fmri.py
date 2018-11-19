@@ -14,6 +14,8 @@ sys.path.insert(0, '/Users/jaime/github/code/production/network_and_topology/')
 import network_analysis as neta
 import numpy as np
 import pdb
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 from random import randint
@@ -215,17 +217,23 @@ def select_cohort(cohort_group):
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0938_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w0940_fMRI_mcf.nii.gz',
                              '/Users/jaime/vallecas/data/converters_y1/converters/w1021_fMRI_mcf.nii.gz']
+    parpadeo_0 = ['/Users/jaime/vallecas/data/parpadeo/images_0/Subject_0259_y7/w__fMRI_RESTING_S_20180322113352_11_mcf.nii.gz','/Users/jaime/vallecas/data/parpadeo/images_0/Subject_0641_y7/w__fMRI_RESTING_S_20180511120149_9_mcf.nii.gz','/Users/jaime/vallecas/data/parpadeo/images_0/Subject_0742_y7/w__fMRI_RESTING_S_20180510111831_10_mcf.nii.gz']
+    parpadeo_1 = ['/Users/jaime/vallecas/data/parpadeo/images_1/Subject_0441_y7/w__fMRI_RESTING_S_20180508110525_9_mcf.nii.gz',\
+    '/Users/jaime/vallecas/data/parpadeo/images_1/Subject_0741_y7/__fMRI_RESTING_S_20180510122347_9_mcf.nii.gz',\
+    '/Users/jaime/vallecas/data/parpadeo/images_1/Subject_0774_y7/__fMRI_RESTING_S_20180511125934_11_mcf.nii.gz',\
+    '/Users/jaime/vallecas/data/parpadeo/images_1/Subject_0867_y7/__fMRI_RESTING_S_20180412110646_9_mcf.nii.gz',\
+    '/Users/jaime/vallecas/data/parpadeo/images_1/Subject_1119_y7/__fMRI_RESTING_S_20180323122959_9_mcf.nii.gz',\
+    '/Users/jaime/vallecas/data/parpadeo/images_1/Subject_1194_y7/__fMRI_RESTING_S_20180406105106_10_mcf.nii.gz']
     epi_file_list_one = ['/Users/jaime/vallecas/data/converters_y1/controls/w0022_fMRI.nii']
     epi_file_list_one = ['/Users/jaime/vallecas/data/cyst_arach/w__fMRI_RESTING_S_20171018163846_10_mcf.nii.gz']
+    epi_file_list_one = ['/Users/jaime/vallecas/data/parpadeo/images_1/Subject_1194_y7/__fMRI_RESTING_S_20180406105106_10.nii.gz']
     just_testing = ['/Users/jaime/Downloads/testmni/w0022_fMRI_mcf.nii.gz', '/Users/jaime/Downloads/testmni/w0028_fMRI_mcf.nii.gz']
     
     if cohort_group is 'converter':
       return epi_file_list_conv
-      #return just 2 
     elif cohort_group is 'control':
       return epi_file_list_healthy
     elif cohort_group is 'single_subject':
-      #load a single image
       return epi_file_list_one
     elif cohort_group is 'scdplus':
       return epi_file_list_scdplus
@@ -239,6 +247,11 @@ def select_cohort(cohort_group):
       return just_testing
     elif cohort_group is 'motioncorrection':
       return motioncorrection
+    elif cohort_group is 'parpadeo_0':
+      return parpadeo_0
+    elif cohort_group is 'parpadeo_1':
+      return parpadeo_1
+
 
 def prepare_plot_time_series(time_series, subject_id):
     """ prepare_plot_time_series: select voxels and title to plot time series """
@@ -531,10 +544,15 @@ def plot_graph_from_atlas(corr_matrix, time_series, atlas):
 ####################### ####################### ####################### #######################
 def main():
     ################################
-    # Run Motion Correction, will create _mcf.nii.gz and mmcf_results
-    # When mcf are created  normalize in MNI
+    # 0.i. fsl_anat [options] –i SubjectT1.nii.gz creates the masks (pve_0, pve_2) for confounding white and csf
+    # 0.ii. recon-all -subject Subject_00m_yn -i SubjectT1.nii.gz –all
+    # 1. Run Motion Correction, will create _mcf.nii.gz and mmcf_results    
+    # 2. Normalize in MNI (always previous to motion correction)
     # as described in matlab_normalization/normalize_matlab.py
-    # continue analysis mcf =False and setting the cohot file names including _mcf
+    # 3. Confounding roduction/fmri/regressors.py   
+    # Requires having run previously fsl_anat (masks White and CSF) and mcflirt .par motion
+    # N. Connectivityanalysis mcf = False setting the cohort file names including _mcf
+    # and giving the list of confounds
     ################################
 
     ################################
@@ -542,10 +560,12 @@ def main():
     ################################
     # Load images 
     ################################
-
+    subjects_dir = "/Users/jaime/vallecas/data/meritxell/longi2frompeg"
+    subjects_ids = ['Subject_0078_y1','Subject_0078_y2','Subject_0078_y4']
+    protocol_images = ['SAG_3D_IR','fMRI_RESTING_S']
     # load and verify from the full path of each images
-    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test']
-    cohort = group[2] #'scdplus' #group[4] 'scdcontrol' #
+    group = ['converter', 'control', 'single_subject', 'scdplus', 'scdcontrol', 'motioncorrection', 'test', 'parpadeo_0', 'parpadeo_1']
+    cohort = group[-1] #'scdplus' #group[4] 'scdcontrol' #
     file_list = select_cohort(cohort)
     #file_list = ['/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_control/0313_fMRI.nii']
     # verify and load from the full path of each images verify_and_load_images(load_list_of_epi_images(cohort))
@@ -594,7 +614,7 @@ def main():
         if len(file_list) >1: read_motioncorrection_report(epi_file_list)
         print('Motion correction Finished. Perform MNI normalization to continue \n')
         #print('go to /Users/jaime/github/code/production/matlab-normalization/normalize-boldMNI-vPython.m') 
-        print('When MNI normalization is done set file_list and mcf = False.) \n')
+        print('When MNI normalization is done remember to file_list and mcf = False \n')
         #3 Steps: 1.gzip -kd *.nii.gz
         #         2. Normalize
         #         3. gzip w*.nii
@@ -606,16 +626,28 @@ def main():
         #     epi_file_list_mcf.append(base)
         # epi_file_list = verify_and_load_images(epi_file_list_mcf)
         print("\n Done with Motion Correction for group: " + str(cohort) + " results at:" + str(dirname) + "\n\n")  
-        print('Exiting Program...')
+        print('Exiting Program...\n')
         return 0
     
     if stc is True:
         if slicetime_correction(epi_file_list, pre_params) is not True: 
             sys.exit("ERROR performing Slice time correction!") 
         print('Slice Time Correction Finished. Perform MNI normalization to continue \n')
-        print('When MNI normalization is done set file_list and stc = False \n')
+        print('When MNI normalization is done remember to file_list and stc = False \n')
         sys.exit()
-    
+    do_confounding = True
+    if do_confounding is True:
+      # build the list of ndarray confounds for each functional image
+      # for confounds_csv to run needs .par (from motion correction) and pve 
+      fsl_anat_dir = subjects_ids[id_s]+ '.anat'
+      fsl_anat_dir = os.path.join(subjects_dir, subjects_ids[id_s], 'SAG_3D_IR', fsl_anat_dir)
+      mask_img_white = os.path.join(fsl_anat_dir, 'T1_fast_pve_2.nii.gz')
+      mask_img_csf = os.path.join(fsl_anat_dir, 'T1_fast_pve_0.nii.gz')
+      
+      mcf_confounds = 
+      regressors.confounds_csv(func, mask_img_white, mask_img_csf, mcf_confounds)
+
+
     ########### Loading array to do not read from File #########
     # load_from_file = False
     # if load_from_file is True:
@@ -639,7 +671,7 @@ def main():
     #######################################
     
     mask_type = ['atlas-msdl','cort-maxprob-thr25-2mm', 'sub-maxprob-thr25-2mm', 'DMN']#, 'AN', 'SN', 'brain-wide']
-    mask_type = mask_type[1]
+    mask_type = mask_type[0]
     atlas_dict = get_labels_and_coords_from_atlas(mask_type)
     labels, coords = atlas_dict[mask_type]['labels'], atlas_dict[mask_type]['coords']
     #dim_coords = atlas_dict['DMN']['dim_coords'] other not DMN dim_coords = atlas_dict[mask_type]['atlas_filename']
@@ -664,7 +696,7 @@ def main():
     #subset_cyst_cort = [11, 14, 15,17,18, 23, 42]
     if plot_some_ts is True:
       #plot a subset of nodes in the network
-      subset_nodes = subset_cyst_cort
+      subset_nodes = [0,1,2,3]
       plot_time_series(seed_ts_subjects[sub_id,:,subset_nodes].T, msgtitle='subset nodes '+str(subset_nodes))
 
     #######################################
@@ -673,7 +705,7 @@ def main():
     #plot spectra for all subjects or only one
     #Set in fourier_spectral_estimation the variable figsdirectory with the directory where the plots will be saved
     #figsdirectory = '/Users/jaime/vallecas/data/scc/scc_image_subjects/preprocessing/prep_scdplus/figures/'
-    plot_psd_per_roi = True
+    plot_psd_per_roi = False
     if plot_psd_per_roi is True:
       psd_allsubjects = list()
       for i in range(0, seed_ts.shape[0]):
@@ -700,18 +732,19 @@ def main():
         msgtitle = 'PSD non cyst:'+str(diffnodes)
         plt.title(msgtitle)
         plt.ylabel('V**2/Hz')     
-    afmri.save_plot(fig_psd_diff,msgtitle)  
+      afmri.save_plot(fig_psd_diff,msgtitle)  
     #######################################
     # Seed based analysis                 #
     # Pearson correlation (power based)   #
     # and coherence    Mask=DMN           #
     ####################################### 
-    seed_based = False
+    seed_based = True
     seed_id = 0 # mask_type must be DMN PCC in the DMN
+    seed_id = -1 # mPFC
     if seed_based is True:
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 1' )
       list_corr_stat_map, list_coh_stat_map = [], []
-      cohort = 'scdplus'
+      cohort = 'parpadeo_0'
       epi_file_list1 = verify_and_load_images(select_cohort(cohort))
       dirname =  os.path.dirname(epi_file_list1[0])
       #change current directory
@@ -725,7 +758,7 @@ def main():
       list_coh_stat_map.append(coh_stat_map)
       # Get the stat map for another group oin order to study difference
       print('\n\n Calling to build_seed_based_stat_map mask type must be DMN. GROUP 2' )
-      cohort = 'scdcontrol'
+      cohort = 'parpadeo_1'
       epi_file_list2 = verify_and_load_images(select_cohort(cohort))
       dirname =  os.path.dirname(epi_file_list2[0])
       seed_ts_subjects, plotted_ts = prepare_timeseries_extraction(masker, epi_file_list2)
@@ -890,16 +923,18 @@ def main():
     #return 0
 
     print('\n Network based analysis.... \n')
-    matrix = 'cov_matrices_cort-maxprob-thr25-2mm.npy'
+    #matrix = 'cov_matrices_cort-maxprob-thr25-2mm.npy'
+    matrix = 'cov_matrix_sparseCV_atlas-msdl.npy'
+    #matrix = 'precision_matrix_sparseCV_atlas-msdl.npy'
+
     matricesnpy = os.path.join(os.getcwd(), 'matrices/', matrix)
     matrices = np.load(matricesnpy)
 
     G_metrics = neta.compute_network_based_analysis(matrices, labels)
-    pdb.set_trace()
-    neta.print_summary_network(G_metrics[1][0], nodes=labels)
+    #neta.print_summary_network(G_metrics[1][0]['clustering'], nodes=labels)
     #network properties calculated:
-    netw_props = G_metrics[1][0].keys()
-    G_metrics[1][0]['clustering']
+    netw_props = G_metrics[1].keys()
+    #G_metrics[1][0]['clustering']
     
     #######################################
     # Granger causality                   #
